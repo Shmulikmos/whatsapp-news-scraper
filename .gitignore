@@ -34,3 +34,7 @@ Thumbs.db
 dist/
 build/
 credentials.json
+
+# Secrets / local environment (never commit real keys)
+.env
+.env.local
