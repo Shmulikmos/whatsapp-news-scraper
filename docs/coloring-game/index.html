@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#7c4dff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>צביעה קסומה 🎨</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  html,body { height:100%; overflow:hidden; position:fixed; width:100%; }
+  body {
+    font-family:'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(160deg,#a18cd1 0%,#fbc2eb 45%,#ffd1a1 100%);
+    touch-action:none;
+  }
+  .screen { display:none; height:100%; width:100%; flex-direction:column; align-items:center; }
+  .screen.active { display:flex; }
+
+  /* ---------- home ---------- */
+  #screen-home { justify-content:center; gap:26px; padding:20px; }
+  #home-title {
+    font-size:min(13vw,64px); font-weight:800; color:#fff;
+    text-shadow:0 4px 0 rgba(124,77,255,.45), 0 8px 24px rgba(0,0,0,.25);
+    animation: floaty 3s ease-in-out infinite;
+  }
+  @keyframes floaty { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-12px) rotate(2deg)} }
+  .big-btn {
+    width:min(80vw,340px); padding:20px 10px; border:none; border-radius:28px;
+    font-size:26px; font-weight:700; color:#fff; cursor:pointer;
+    box-shadow:0 6px 0 rgba(0,0,0,.18), 0 12px 24px rgba(0,0,0,.18);
+    transition:transform .1s;
+    font-family:inherit;
+  }
+  .big-btn:active { transform:scale(.95) translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.18); }
+  #btn-gallery  { background:linear-gradient(135deg,#ff6ec4,#ff9a44); }
+  #btn-free     { background:linear-gradient(135deg,#42e695,#3bb2b8); }
+  #btn-mine     { background:linear-gradient(135deg,#7c4dff,#448aff); }
+  .home-emojis { font-size:34px; letter-spacing:8px; animation: floaty 4s ease-in-out infinite reverse; }
+
+  /* ---------- gallery / creations ---------- */
+  .top-strip {
+    width:100%; display:flex; align-items:center; gap:10px; padding:12px 16px;
+  }
+  .top-strip h2 { color:#fff; font-size:26px; text-shadow:0 2px 6px rgba(0,0,0,.25); flex:1; text-align:center; }
+  .round-btn {
+    min-width:52px; height:52px; border:none; border-radius:50%;
+    background:#ffffffd9; font-size:26px; cursor:pointer;
+    box-shadow:0 3px 8px rgba(0,0,0,.2); transition:transform .1s;
+    display:flex; align-items:center; justify-content:center;
+    font-family:inherit;
+  }
+  .round-btn:active { transform:scale(.88); }
+  .round-btn:disabled { opacity:.35; }
+  .grid {
+    flex:1; width:100%; overflow-y:auto; padding:6px 16px 24px;
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px;
+    grid-auto-rows:max-content;
+    touch-action:pan-y;
+    align-content:start;
+  }
+  .thumb {
+    background:#fff; border-radius:22px; overflow:hidden; cursor:pointer;
+    box-shadow:0 5px 14px rgba(0,0,0,.18); border:none; padding:0;
+    transition:transform .12s; position:relative;
+    display:flex; flex-direction:column;
+  }
+  .thumb:active { transform:scale(.93); }
+  .thumb img { width:100%; aspect-ratio:1/1; display:block; background:#fff; }
+  .thumb .cap { display:block; padding:6px 4px 10px; font-size:18px; font-weight:700; color:#6b4fbb; font-family:inherit; }
+  .thumb .del, .thumb .dl {
+    position:absolute; top:8px; width:40px; height:40px; border:none; border-radius:50%;
+    font-size:19px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.25);
+  }
+  .thumb .del { left:8px; background:#ffebee; }
+  .thumb .dl  { right:8px; background:#e3f2fd; }
+  .empty-note { grid-column:1/-1; text-align:center; color:#fff; font-size:20px; padding:40px 10px; text-shadow:0 2px 4px rgba(0,0,0,.2); }
+
+  /* ---------- draw screen ---------- */
+  #screen-draw { background:linear-gradient(160deg,#8e7cc3,#f8b6d2); }
+  #screen-draw.free-mode { background:linear-gradient(160deg,#241b4d,#0e0a2a); }
+  #draw-top { width:100%; display:flex; gap:8px; padding:10px 12px 6px; align-items:center; justify-content:center; }
+  #canvas-wrap {
+    position:relative; flex:1; width:100%; display:flex; align-items:center; justify-content:center;
+    min-height:0; padding:4px 8px;
+  }
+  #canvas-box {
+    position:relative; border-radius:18px; overflow:hidden;
+    box-shadow:0 8px 30px rgba(0,0,0,.35);
+    background:#fff;
+  }
+  #canvas-box canvas { position:absolute; inset:0; width:100%; height:100%; }
+  #paint { position:relative !important; }
+  #lines, #fx { pointer-events:none; }
+
+  #toolbar { width:100%; padding:6px 8px calc(10px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:8px; }
+  #tools-row { display:flex; gap:8px; justify-content:center; flex-wrap:nowrap; overflow-x:auto; padding:2px 4px; touch-action:pan-x; }
+  .tool-btn {
+    min-width:54px; height:54px; border:none; border-radius:18px; font-size:26px;
+    background:#ffffffcc; cursor:pointer; box-shadow:0 3px 6px rgba(0,0,0,.2);
+    transition:transform .1s; flex:0 0 auto;
+  }
+  .tool-btn:active { transform:scale(.88); }
+  .tool-btn.selected { background:#fff176; outline:4px solid #ffab00; transform:scale(1.06); }
+  .size-btn { font-weight:800; color:#555; }
+  .size-btn .dot { display:inline-block; background:#555; border-radius:50%; }
+  #colors-row {
+    display:flex; gap:9px; overflow-x:auto; padding:6px 8px; touch-action:pan-x;
+    scrollbar-width:none;
+  }
+  #colors-row::-webkit-scrollbar { display:none; }
+  .swatch {
+    min-width:46px; height:46px; border-radius:50%; border:4px solid #ffffffb0;
+    cursor:pointer; flex:0 0 auto; box-shadow:0 3px 6px rgba(0,0,0,.25); transition:transform .1s;
+  }
+  .swatch.selected { transform:scale(1.22); border-color:#fff; outline:3px solid #7c4dff; }
+
+  /* ---------- toast & modal ---------- */
+  #toast {
+    position:fixed; top:18%; left:50%; transform:translateX(-50%) scale(0);
+    background:#ffffffee; color:#6b4fbb; font-size:30px; font-weight:800;
+    padding:18px 34px; border-radius:24px; box-shadow:0 10px 30px rgba(0,0,0,.3);
+    transition:transform .25s cubic-bezier(.34,1.56,.64,1); z-index:50; pointer-events:none;
+    text-align:center;
+  }
+  #toast.show { transform:translateX(-50%) scale(1); }
+  #modal {
+    position:fixed; inset:0; background:rgba(30,20,60,.55); z-index:60;
+    display:none; align-items:center; justify-content:center;
+  }
+  #modal.show { display:flex; }
+  #modal .box {
+    background:#fff; border-radius:26px; padding:26px 30px; text-align:center;
+    display:flex; flex-direction:column; gap:18px; max-width:82vw;
+  }
+  #modal .box p { font-size:24px; font-weight:700; color:#5a4a9e; }
+  #modal .box div { display:flex; gap:14px; justify-content:center; }
+  #modal button {
+    border:none; border-radius:16px; font-size:22px; font-weight:700; padding:12px 30px; cursor:pointer;
+    font-family:inherit;
+  }
+  #modal-yes { background:#ff8a80; color:#fff; }
+  #modal-no  { background:#e0e0e0; color:#555; }
+</style>
+</head>
+<body>
+
+<!-- ============ HOME ============ -->
+<div id="screen-home" class="screen active">
+  <div class="home-emojis">🦄 ✨ 🌈</div>
+  <div id="home-title">צביעה קסומה</div>
+  <button class="big-btn" id="btn-gallery">🎨 דפי צביעה</button>
+  <button class="big-btn" id="btn-free">💫 ציור קסם חופשי</button>
+  <button class="big-btn" id="btn-mine">⭐ היצירות שלי</button>
+  <div class="home-emojis">🖌️ 🎀 🦋</div>
+</div>
+
+<!-- ============ GALLERY ============ -->
+<div id="screen-gallery" class="screen">
+  <div class="top-strip">
+    <button class="round-btn" data-nav="home">🏠</button>
+    <h2>בחרי ציור לצביעה</h2>
+    <span style="width:52px"></span>
+  </div>
+  <div class="grid" id="gallery-grid"></div>
+</div>
+
+<!-- ============ CREATIONS ============ -->
+<div id="screen-creations" class="screen">
+  <div class="top-strip">
+    <button class="round-btn" data-nav="home">🏠</button>
+    <h2>היצירות שלי ⭐</h2>
+    <span style="width:52px"></span>
+  </div>
+  <div class="grid" id="creations-grid"></div>
+</div>
+
+<!-- ============ DRAW ============ -->
+<div id="screen-draw" class="screen">
+  <div id="draw-top">
+    <button class="round-btn" data-nav="back">🏠</button>
+    <button class="round-btn" id="btn-undo">↪️</button>
+    <button class="round-btn" id="btn-redo">↩️</button>
+    <button class="round-btn" id="btn-clear">🗑️</button>
+    <button class="round-btn" id="btn-save" style="background:#fff59d">💾</button>
+  </div>
+  <div id="canvas-wrap">
+    <div id="canvas-box">
+      <canvas id="paint" width="768" height="768"></canvas>
+      <canvas id="lines" width="768" height="768"></canvas>
+      <canvas id="fx" width="768" height="768"></canvas>
+    </div>
+  </div>
+  <div id="toolbar">
+    <div id="tools-row">
+      <button class="tool-btn" data-tool="fill">🪣</button>
+      <button class="tool-btn" data-tool="brush">🖌️</button>
+      <button class="tool-btn" data-tool="glitter">✨</button>
+      <button class="tool-btn" data-tool="rainbow">🌈</button>
+      <button class="tool-btn" data-tool="glow">💫</button>
+      <button class="tool-btn" data-tool="eraser">🧽</button>
+      <button class="tool-btn size-btn" data-size="12"><span class="dot" style="width:8px;height:8px"></span></button>
+      <button class="tool-btn size-btn" data-size="26"><span class="dot" style="width:16px;height:16px"></span></button>
+      <button class="tool-btn size-btn" data-size="46"><span class="dot" style="width:26px;height:26px"></span></button>
+    </div>
+    <div id="colors-row"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="modal">
+  <div class="box">
+    <p id="modal-text">לנקות הכול?</p>
+    <div>
+      <button id="modal-yes">כן 🗑️</button>
+      <button id="modal-no">לא</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* =====================================================
+   צביעה קסומה — משחק צביעה לילדים
+   ===================================================== */
+const W = 768, H = 768;
+const FREE_BG = '#161038';
+
+/* ---------- coloring pages (SVG line art) ---------- */
+const SVG_OPEN = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 768">' +
+  '<g fill="none" stroke="#333333" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">';
+const SVG_CLOSE = '</g></svg>';
+
+const PAGES = [
+{ name:'פרפר', art:
+  '<path d="M370 232 Q330 160 288 150" /><circle cx="284" cy="146" r="12"/>' +
+  '<path d="M398 232 Q438 160 480 150" /><circle cx="484" cy="146" r="12"/>' +
+  '<ellipse cx="248" cy="300" rx="115" ry="92" transform="rotate(-25 248 300)"/>' +
+  '<ellipse cx="520" cy="300" rx="115" ry="92" transform="rotate(25 520 300)"/>' +
+  '<ellipse cx="252" cy="478" rx="88" ry="72" transform="rotate(18 252 478)"/>' +
+  '<ellipse cx="516" cy="478" rx="88" ry="72" transform="rotate(-18 516 478)"/>' +
+  '<circle cx="238" cy="295" r="34"/><circle cx="530" cy="295" r="34"/>' +
+  '<circle cx="250" cy="480" r="26"/><circle cx="518" cy="480" r="26"/>' +
+  '<ellipse cx="384" cy="410" rx="36" ry="125"/>' +
+  '<circle cx="384" cy="258" r="38"/>'
+},
+{ name:'פרח', art:
+  '<path d="M384 440 L384 660"/>' +
+  '<ellipse cx="322" cy="570" rx="58" ry="26" transform="rotate(-30 322 570)"/>' +
+  '<ellipse cx="446" cy="610" rx="58" ry="26" transform="rotate(30 446 610)"/>' +
+  '<ellipse cx="384" cy="196" rx="52" ry="96"/>' +
+  '<ellipse cx="384" cy="196" rx="52" ry="96" transform="rotate(60 384 300)"/>' +
+  '<ellipse cx="384" cy="196" rx="52" ry="96" transform="rotate(120 384 300)"/>' +
+  '<ellipse cx="384" cy="196" rx="52" ry="96" transform="rotate(180 384 300)"/>' +
+  '<ellipse cx="384" cy="196" rx="52" ry="96" transform="rotate(240 384 300)"/>' +
+  '<ellipse cx="384" cy="196" rx="52" ry="96" transform="rotate(300 384 300)"/>' +
+  '<circle cx="384" cy="300" r="62"/>'
+},
+{ name:'דג', art:
+  '<path d="M300 292 Q350 205 445 252 Q385 285 330 292 Z"/>' +
+  '<ellipse cx="360" cy="390" rx="172" ry="112"/>' +
+  '<path d="M516 390 L648 302 L648 478 Z"/>' +
+  '<ellipse cx="362" cy="430" rx="52" ry="28" transform="rotate(-20 362 430)"/>' +
+  '<circle cx="282" cy="352" r="24"/><circle cx="282" cy="352" r="9" fill="#333333"/>' +
+  '<path d="M216 420 Q232 436 250 424"/>' +
+  '<circle cx="600" cy="180" r="26"/><circle cx="660" cy="118" r="17"/><circle cx="556" cy="112" r="12"/>'
+},
+{ name:'חתול', art:
+  '<path d="M232 272 L258 108 L382 202 Z"/>' +
+  '<path d="M536 272 L510 108 L386 202 Z"/>' +
+  '<circle cx="384" cy="404" r="218"/>' +
+  '<circle cx="302" cy="372" r="32"/><circle cx="302" cy="372" r="11" fill="#333333"/>' +
+  '<circle cx="466" cy="372" r="32"/><circle cx="466" cy="372" r="11" fill="#333333"/>' +
+  '<path d="M362 452 L406 452 L384 482 Z"/>' +
+  '<path d="M384 482 L384 512"/>' +
+  '<path d="M384 512 Q350 548 318 518"/><path d="M384 512 Q418 548 450 518"/>' +
+  '<path d="M170 420 L262 428"/><path d="M172 470 L262 458"/>' +
+  '<path d="M598 420 L506 428"/><path d="M596 470 L506 458"/>'
+},
+{ name:'טיל', art:
+  '<path d="M314 490 L314 246 Q314 154 384 84 Q454 154 454 246 L454 490 Z"/>' +
+  '<path d="M314 380 L226 528 L314 502 Z"/>' +
+  '<path d="M454 380 L542 528 L454 502 Z"/>' +
+  '<circle cx="384" cy="268" r="50"/><circle cx="384" cy="268" r="30"/>' +
+  '<path d="M340 512 Q384 660 428 512 Z"/>' +
+  '<path d="M362 512 Q384 590 406 512"/>' +
+  '<circle cx="170" cy="180" r="12"/><circle cx="620" cy="240" r="14"/><circle cx="600" cy="620" r="12"/><circle cx="150" cy="600" r="10"/>'
+},
+{ name:'גלידה', art:
+  '<path d="M300 402 L468 402 L384 672 Z"/>' +
+  '<path d="M322 470 L430 470"/><path d="M346 545 L410 545"/>' +
+  '<circle cx="384" cy="330" r="100"/>' +
+  '<circle cx="384" cy="204" r="76"/>' +
+  '<path d="M384 130 Q392 96 418 84"/>' +
+  '<circle cx="424" cy="76" r="20"/>'
+},
+{ name:'בית', art:
+  '<rect x="244" y="360" width="280" height="244" />' +
+  '<path d="M204 360 L384 198 L564 360 Z"/>' +
+  '<rect x="350" y="472" width="82" height="132" rx="10"/>' +
+  '<circle cx="368" cy="540" r="7" fill="#333333"/>' +
+  '<rect x="272" y="402" width="64" height="60"/><path d="M304 402 L304 462 M272 432 L336 432"/>' +
+  '<rect x="436" y="402" width="64" height="60"/><path d="M468 402 L468 462 M436 432 L500 432"/>' +
+  '<circle cx="648" cy="126" r="46"/>' +
+  '<path d="M648 52 L648 26 M648 200 L648 226 M574 126 L548 126 M598 76 L580 58 M698 76 L716 58 M598 176 L580 194 M698 176 L716 194"/>' +
+  '<path d="M96 150 Q96 108 140 108 Q152 66 202 78 Q244 66 252 110 Q292 116 282 150 Z"/>'
+},
+{ name:'קשת בענן', art:
+  '<path d="M154 430 A230 230 0 0 1 614 430"/>' +
+  '<path d="M204 430 A180 180 0 0 1 564 430"/>' +
+  '<path d="M254 430 A130 130 0 0 1 514 430"/>' +
+  '<path d="M304 430 A80 80 0 0 1 464 430"/>' +
+  '<path d="M154 430 L614 430"/>' +
+  '<path d="M84 470 Q78 428 122 424 Q132 388 176 398 Q214 390 220 428 Q256 434 246 470 Z"/>' +
+  '<path d="M522 470 Q516 428 560 424 Q570 388 614 398 Q652 390 658 428 Q694 434 684 470 Z"/>' +
+  '<path d="M384 548 C 348 500 268 518 268 580 C 268 642 384 700 384 700 C 384 700 500 642 500 580 C 500 518 420 500 384 548 Z"/>'
+},
+{ name:'בלונים', art:
+  '<ellipse cx="262" cy="266" rx="74" ry="94"/><path d="M250 356 L274 356 L262 376 Z"/>' +
+  '<ellipse cx="420" cy="206" rx="80" ry="100"/><path d="M408 302 L432 302 L420 322 Z"/>' +
+  '<ellipse cx="540" cy="330" rx="62" ry="80"/><path d="M528 406 L552 406 L540 426 Z"/>' +
+  '<path d="M262 378 Q300 520 392 636"/>' +
+  '<path d="M420 324 Q412 500 396 632"/>' +
+  '<path d="M540 428 Q490 540 400 634"/>' +
+  '<circle cx="396" cy="644" r="14"/>' +
+  '<path d="M96 560 Q90 518 134 514 Q144 478 188 488 Q226 480 232 518 Q268 524 258 560 Z"/>'
+},
+{ name:'כתר', art:
+  '<path d="M204 480 L204 306 L296 388 L384 244 L472 388 L564 306 L564 480 Z"/>' +
+  '<rect x="196" y="480" width="376" height="62" rx="14"/>' +
+  '<circle cx="294" cy="442" r="24"/><circle cx="384" cy="424" r="28"/><circle cx="474" cy="442" r="24"/>' +
+  '<circle cx="204" cy="286" r="20"/><circle cx="384" cy="222" r="22"/><circle cx="564" cy="286" r="20"/>' +
+  '<path d="M130 180 L150 200 M150 180 L130 200"/><path d="M620 160 L640 180 M640 160 L620 180"/>' +
+  '<circle cx="120" cy="420" r="10"/><circle cx="650" cy="440" r="10"/>'
+}
+];
+
+const COLORS = ['#e53935','#ff7043','#ffb300','#ffee58','#9ccc65','#43a047','#00e676','#26c6da',
+  '#29b6f6','#1e88e5','#5e35b1','#8e24aa','#d81b60','#f06292','#ff80ab','#f8bbd0',
+  '#ffcc99','#8d6e63','#5d4037','#9e9e9e','#212121','#ffffff'];
+
+/* ---------- state ---------- */
+let mode = 'color';           // 'color' | 'free'
+let tool = 'fill';
+let color = '#e53935';
+let brushSize = 26;
+let drawing = false;
+let lastX = 0, lastY = 0, hue = 0;
+let undoStack = [], redoStack = [];
+const MAX_UNDO = 20;
+
+const $ = s => document.querySelector(s);
+const paint = $('#paint'), lines = $('#lines'), fx = $('#fx');
+const pctx = paint.getContext('2d', { willReadFrequently:true });
+const lctx = lines.getContext('2d', { willReadFrequently:true });
+const xctx = fx.getContext('2d');
+
+/* ---------- sounds ---------- */
+let AC = null;
+function tone(freq, dur=0.09, type='sine', vol=0.12, when=0){
+  try{
+    AC = AC || new (window.AudioContext||window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+    const t = AC.currentTime + when;
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  }catch(e){}
+}
+const sndPop  = () => tone(660, .08, 'triangle');
+const sndPick = () => tone(880, .06, 'sine');
+const sndFill = () => { tone(520,.09,'triangle'); tone(780,.09,'triangle',.1,.07); };
+const sndTada = () => [523,659,784,1047].forEach((f,i)=>tone(f,.18,'triangle',.14,i*.09));
+
+/* ---------- navigation ---------- */
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $('#'+id).classList.add('active');
+}
+document.querySelectorAll('[data-nav]').forEach(b=>{
+  b.addEventListener('click', ()=>{ sndPop(); show(b.dataset.nav==='back' ? 'screen-home' : 'screen-home'); });
+});
+$('#btn-gallery').addEventListener('click', ()=>{ sndPop(); show('screen-gallery'); });
+$('#btn-mine').addEventListener('click', ()=>{ sndPop(); renderCreations(); show('screen-creations'); });
+$('#btn-free').addEventListener('click', ()=>{ sndPop(); openFreeDraw(); });
+
+/* ---------- gallery ---------- */
+function pageSvg(p, withBg){
+  return SVG_OPEN.replace('">', '">' + (withBg ? '<rect x="-10" y="-10" width="788" height="788" fill="#ffffff" stroke="none"/>' : '')) + p.art + SVG_CLOSE;
+}
+function svgUri(svg){ return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); }
+
+const galleryGrid = $('#gallery-grid');
+PAGES.forEach((p, i)=>{
+  const b = document.createElement('button');
+  b.className = 'thumb';
+  b.innerHTML = '<img src="' + svgUri(pageSvg(p,true)) + '" alt=""><span class="cap">' + p.name + '</span>';
+  b.addEventListener('click', ()=>{ sndPop(); openColoring(i); });
+  galleryGrid.appendChild(b);
+});
+
+/* ---------- canvas sizing ---------- */
+function fitCanvas(){
+  const wrap = $('#canvas-wrap');
+  const size = Math.min(wrap.clientWidth - 16, wrap.clientHeight - 8);
+  const box = $('#canvas-box');
+  box.style.width = size + 'px';
+  box.style.height = size + 'px';
+}
+window.addEventListener('resize', ()=>setTimeout(fitCanvas, 60));
+
+/* ---------- open drawing screens ---------- */
+function loadLineArt(i){
+  return new Promise(res=>{
+    const img = new Image();
+    img.onload = ()=>{ lctx.clearRect(0,0,W,H); lctx.drawImage(img,0,0,W,H); res(); };
+    img.src = svgUri(pageSvg(PAGES[i], false));
+  });
+}
+async function openColoring(i){
+  mode = 'color';
+  $('#screen-draw').classList.remove('free-mode');
+  pctx.fillStyle = '#ffffff'; pctx.fillRect(0,0,W,H);
+  await loadLineArt(i);
+  resetHistory();
+  setTool('fill');
+  show('screen-draw'); fitCanvas();
+}
+function openFreeDraw(){
+  mode = 'free';
+  $('#screen-draw').classList.add('free-mode');
+  lctx.clearRect(0,0,W,H);
+  pctx.fillStyle = FREE_BG; pctx.fillRect(0,0,W,H);
+  resetHistory();
+  setTool('glow');
+  show('screen-draw'); fitCanvas();
+}
+
+/* ---------- tools & colors ---------- */
+const toolBtns = document.querySelectorAll('[data-tool]');
+function setTool(t){
+  tool = t;
+  toolBtns.forEach(b=>b.classList.toggle('selected', b.dataset.tool===t));
+}
+toolBtns.forEach(b=>b.addEventListener('click', ()=>{ sndPick(); setTool(b.dataset.tool); }));
+
+document.querySelectorAll('[data-size]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    sndPick();
+    brushSize = +b.dataset.size;
+    document.querySelectorAll('[data-size]').forEach(x=>x.classList.toggle('selected', x===b));
+    if (tool==='fill' || tool==='eraser') setTool('brush');
+  });
+});
+document.querySelector('[data-size="26"]').classList.add('selected');
+
+const colorsRow = $('#colors-row');
+COLORS.forEach(c=>{
+  const s = document.createElement('button');
+  s.className = 'swatch'; s.style.background = c;
+  if (c===color) s.classList.add('selected');
+  s.addEventListener('click', ()=>{
+    sndPick(); color = c;
+    document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('selected'));
+    s.classList.add('selected');
+    if (tool==='eraser') setTool(mode==='free' ? 'glow' : 'fill');
+  });
+  colorsRow.appendChild(s);
+});
+
+/* ---------- history ---------- */
+function resetHistory(){ undoStack = []; redoStack = []; updateHistBtns(); }
+function snapshot(){
+  undoStack.push(paint.toDataURL());
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack = [];
+  updateHistBtns();
+}
+function restore(url){
+  return new Promise(res=>{
+    const img = new Image();
+    img.onload = ()=>{ pctx.clearRect(0,0,W,H); pctx.drawImage(img,0,0); res(); };
+    img.src = url;
+  });
+}
+async function undo(){
+  if (!undoStack.length) return;
+  redoStack.push(paint.toDataURL());
+  await restore(undoStack.pop());
+  updateHistBtns(); sndPop();
+}
+async function redo(){
+  if (!redoStack.length) return;
+  undoStack.push(paint.toDataURL());
+  await restore(redoStack.pop());
+  updateHistBtns(); sndPop();
+}
+function updateHistBtns(){
+  $('#btn-undo').disabled = !undoStack.length;
+  $('#btn-redo').disabled = !redoStack.length;
+}
+$('#btn-undo').addEventListener('click', undo);
+$('#btn-redo').addEventListener('click', redo);
+
+/* ---------- clear ---------- */
+$('#btn-clear').addEventListener('click', ()=>{
+  sndPop();
+  askModal('לנקות את כל הציור?', ()=>{
+    snapshot();
+    pctx.fillStyle = mode==='free' ? FREE_BG : '#ffffff';
+    pctx.fillRect(0,0,W,H);
+  });
+});
+let modalCb = null;
+function askModal(text, cb){
+  $('#modal-text').textContent = text;
+  modalCb = cb;
+  $('#modal').classList.add('show');
+}
+$('#modal-yes').addEventListener('click', ()=>{ $('#modal').classList.remove('show'); if(modalCb)modalCb(); });
+$('#modal-no').addEventListener('click', ()=>{ $('#modal').classList.remove('show'); });
+
+/* ---------- pointer handling ---------- */
+function canvasPos(e){
+  const r = paint.getBoundingClientRect();
+  return [ (e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height ];
+}
+let activePointer = null;
+paint.addEventListener('pointerdown', e=>{
+  if (activePointer !== null) return;
+  activePointer = e.pointerId;
+  paint.setPointerCapture(e.pointerId);
+  const [x,y] = canvasPos(e);
+  if (tool === 'fill'){
+    snapshot();
+    if (floodFill(x|0, y|0, color)) { sndFill(); sparkleAt(x, y); }
+    else { undoStack.pop(); updateHistBtns(); }
+    activePointer = null;
+    return;
+  }
+  snapshot();
+  drawing = true; lastX = x; lastY = y;
+  drawSegment(x, y, x + 0.01, y + 0.01);
+});
+paint.addEventListener('pointermove', e=>{
+  if (!drawing || e.pointerId !== activePointer) return;
+  const evts = (e.getCoalescedEvents && e.getCoalescedEvents().length) ? e.getCoalescedEvents() : [e];
+  for (const ev of evts){
+    const [x,y] = canvasPos(ev);
+    drawSegment(lastX, lastY, x, y);
+    lastX = x; lastY = y;
+  }
+});
+function endStroke(e){
+  if (e.pointerId !== activePointer) return;
+  drawing = false; activePointer = null;
+}
+paint.addEventListener('pointerup', endStroke);
+paint.addEventListener('pointercancel', endStroke);
+
+/* ---------- drawing tools ---------- */
+function drawSegment(x0,y0,x1,y1){
+  pctx.save();
+  pctx.lineCap = 'round'; pctx.lineJoin = 'round';
+  if (tool === 'brush' || tool === 'eraser'){
+    pctx.strokeStyle = tool==='eraser' ? (mode==='free' ? FREE_BG : '#ffffff') : color;
+    pctx.lineWidth = tool==='eraser' ? brushSize*1.6 : brushSize;
+    pctx.beginPath(); pctx.moveTo(x0,y0); pctx.lineTo(x1,y1); pctx.stroke();
+  }
+  else if (tool === 'rainbow'){
+    const d = Math.hypot(x1-x0, y1-y0);
+    hue = (hue + d * 0.6) % 360;
+    pctx.strokeStyle = 'hsl(' + hue + ',95%,55%)';
+    pctx.lineWidth = brushSize;
+    pctx.beginPath(); pctx.moveTo(x0,y0); pctx.lineTo(x1,y1); pctx.stroke();
+  }
+  else if (tool === 'glow'){
+    pctx.shadowColor = color; pctx.shadowBlur = brushSize * 0.9;
+    pctx.strokeStyle = color; pctx.lineWidth = brushSize * 0.55;
+    pctx.beginPath(); pctx.moveTo(x0,y0); pctx.lineTo(x1,y1); pctx.stroke();
+    pctx.shadowBlur = 0;
+    pctx.strokeStyle = 'rgba(255,255,255,.85)'; pctx.lineWidth = Math.max(2, brushSize*0.18);
+    pctx.beginPath(); pctx.moveTo(x0,y0); pctx.lineTo(x1,y1); pctx.stroke();
+  }
+  else if (tool === 'glitter'){
+    const d = Math.max(1, Math.hypot(x1-x0, y1-y0));
+    const steps = Math.ceil(d / 4);
+    for (let i=0; i<=steps; i++){
+      const x = x0 + (x1-x0)*i/steps + (Math.random()-.5)*brushSize;
+      const y = y0 + (y1-y0)*i/steps + (Math.random()-.5)*brushSize;
+      const r = 1.5 + Math.random() * brushSize * 0.16;
+      pctx.fillStyle = Math.random() < 0.3 ? '#ffffff' : color;
+      pctx.globalAlpha = 0.6 + Math.random()*0.4;
+      pctx.beginPath(); pctx.arc(x, y, r, 0, 7); pctx.fill();
+      pctx.globalAlpha = 1;
+    }
+  }
+  pctx.restore();
+}
+
+/* ---------- flood fill (scanline) ---------- */
+function hexToRgb(h){
+  return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+}
+function floodFill(sx, sy, hex){
+  if (sx<0||sy<0||sx>=W||sy>=H) return false;
+  const pd = pctx.getImageData(0,0,W,H), p = pd.data;
+  const l = lctx.getImageData(0,0,W,H).data;
+  const LINE_A = 200;                       // alpha above this = boundary line
+  const si = (sy*W + sx) * 4;
+  if (l[si+3] > LINE_A) return false;       // tapped on an outline
+  const tr=p[si], tg=p[si+1], tb=p[si+2];
+  const [fr,fg,fb] = hexToRgb(hex);
+  if (Math.abs(tr-fr)+Math.abs(tg-fg)+Math.abs(tb-fb) < 12) return false;
+  const TOL = 120;
+  const match = i => {
+    const j = i*4;
+    if (l[j+3] > LINE_A) return false;
+    return Math.abs(p[j]-tr) + Math.abs(p[j+1]-tg) + Math.abs(p[j+2]-tb) <= TOL;
+  };
+  const paintPx = i => {
+    const j = i*4;
+    p[j]=fr; p[j+1]=fg; p[j+2]=fb; p[j+3]=255;
+  };
+  const stack = [sy*W + sx];
+  const done = new Uint8Array(W*H);
+  while (stack.length){
+    const idx = stack.pop();
+    if (done[idx]) continue;
+    const y = (idx / W) | 0;
+    let x = idx % W;
+    while (x > 0 && !done[idx - (idx%W) + x - 1] && match(y*W + x - 1)) x--;
+    let up = false, down = false;
+    let i = y*W + x;
+    while (x < W && match(i) && !done[i]){
+      paintPx(i); done[i] = 1;
+      if (y > 0){
+        const iu = i - W;
+        if (!done[iu] && match(iu)) { if (!up){ stack.push(iu); up = true; } }
+        else up = false;
+      }
+      if (y < H-1){
+        const idn = i + W;
+        if (!done[idn] && match(idn)) { if (!down){ stack.push(idn); down = true; } }
+        else down = false;
+      }
+      x++; i++;
+    }
+  }
+  pctx.putImageData(pd, 0, 0);
+  return true;
+}
+
+/* ---------- fx: sparkles & confetti ---------- */
+let fxParts = [], fxRunning = false;
+function fxLoop(){
+  xctx.clearRect(0,0,W,H);
+  fxParts = fxParts.filter(pt=>{
+    pt.x += pt.vx; pt.y += pt.vy; pt.vy += pt.g; pt.life -= 1;
+    if (pt.life <= 0) return false;
+    xctx.globalAlpha = Math.min(1, pt.life / 30);
+    xctx.fillStyle = pt.c;
+    if (pt.star){
+      xctx.save(); xctx.translate(pt.x,pt.y); xctx.rotate(pt.life*0.2);
+      xctx.fillRect(-pt.r, -pt.r/3, pt.r*2, pt.r*0.66);
+      xctx.fillRect(-pt.r/3, -pt.r, pt.r*0.66, pt.r*2);
+      xctx.restore();
+    } else {
+      xctx.beginPath(); xctx.arc(pt.x, pt.y, pt.r, 0, 7); xctx.fill();
+    }
+    xctx.globalAlpha = 1;
+    return true;
+  });
+  if (fxParts.length) requestAnimationFrame(fxLoop);
+  else { fxRunning = false; xctx.clearRect(0,0,W,H); }
+}
+function startFx(){ if (!fxRunning){ fxRunning = true; requestAnimationFrame(fxLoop); } }
+function sparkleAt(x,y){
+  for (let i=0;i<14;i++){
+    const a = Math.random()*Math.PI*2, v = 1+Math.random()*4;
+    fxParts.push({x, y, vx:Math.cos(a)*v, vy:Math.sin(a)*v, g:0.05, r:3+Math.random()*4,
+      life:25+Math.random()*15, c:['#fff','#ffe082',color][i%3], star:Math.random()<.5});
+  }
+  startFx();
+}
+function confetti(){
+  const cs = ['#ff5252','#ffb300','#ffee58','#69f0ae','#40c4ff','#e040fb','#ff80ab'];
+  for (let i=0;i<120;i++){
+    fxParts.push({x:Math.random()*W, y:-20-Math.random()*200, vx:(Math.random()-.5)*3,
+      vy:2+Math.random()*4, g:0.08, r:4+Math.random()*5,
+      life:70+Math.random()*50, c:cs[i%cs.length], star:Math.random()<.4});
+  }
+  startFx();
+}
+
+/* ---------- toast ---------- */
+let toastTimer = null;
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* ---------- save & creations ---------- */
+const LS_KEY = 'magic-coloring-creations';
+function getCreations(){
+  try{ return JSON.parse(localStorage.getItem(LS_KEY)) || []; }catch(e){ return []; }
+}
+function compositeImage(){
+  const c = document.createElement('canvas');
+  c.width = 640; c.height = 640;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(paint, 0, 0, 640, 640);
+  ctx.drawImage(lines, 0, 0, 640, 640);
+  return c.toDataURL('image/png');
+}
+$('#btn-save').addEventListener('click', ()=>{
+  const img = compositeImage();
+  let list = getCreations();
+  list.unshift({ id: Date.now(), img });
+  while (list.length > 12) list.pop();      // keep localStorage small
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify(list));
+    toast('נשמר! כל הכבוד! ⭐');
+  }catch(e){
+    toast('אין מקום 😅 מחקי יצירות ישנות');
+  }
+  sndTada(); confetti();
+});
+
+function renderCreations(){
+  const grid = $('#creations-grid');
+  grid.innerHTML = '';
+  const list = getCreations();
+  if (!list.length){
+    grid.innerHTML = '<div class="empty-note">עדיין אין יצירות...<br>🎨 בואי נצייר משהו יפה!</div>';
+    return;
+  }
+  list.forEach(item=>{
+    const d = document.createElement('div');
+    d.className = 'thumb';
+    d.innerHTML = '<img src="' + item.img + '" alt="">' +
+      '<button class="del">🗑️</button><button class="dl">⬇️</button>';
+    d.querySelector('.del').addEventListener('click', ()=>{
+      askModal('למחוק את היצירה?', ()=>{
+        const l = getCreations().filter(x=>x.id!==item.id);
+        localStorage.setItem(LS_KEY, JSON.stringify(l));
+        renderCreations();
+      });
+    });
+    d.querySelector('.dl').addEventListener('click', ()=>{
+      const a = document.createElement('a');
+      a.href = item.img; a.download = 'הציור-שלי-' + item.id + '.png';
+      a.click(); sndTada();
+    });
+    grid.appendChild(d);
+  });
+}
+
+/* ---------- prevent stray gestures ---------- */
+document.addEventListener('touchmove', e=>{
+  if (e.target.closest('.grid') || e.target.closest('#colors-row') || e.target.closest('#tools-row')) return;
+  e.preventDefault();
+}, { passive:false });
+document.addEventListener('dblclick', e=>e.preventDefault());
+
+/* ---------- service worker (works only when hosted) ---------- */
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+fitCanvas();
+</script>
+</body>
+</html>
