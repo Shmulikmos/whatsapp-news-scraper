@@ -1,0 +1,32 @@
+{
+  "description": "CEO HQ – Google Drive database map. All IDs point to files in the connected Google Drive account.",
+  "driveOwner": "shmulik.mos@gmail.com",
+  "rootFolder": {
+    "id": "1icP3Vxmox-gsi56eaS6jybxiutiS_UfS",
+    "name": "CEO HQ – מטה ניהול",
+    "url": "https://drive.google.com/drive/folders/1icP3Vxmox-gsi56eaS6jybxiutiS_UfS"
+  },
+  "folders": {
+    "database": { "id": "15k8frIBtS_9T7yFYLMdWdr85m-f-0Os3", "name": "📊 Database – מסד נתונים" },
+    "inbox": { "id": "14XikJObH_yB0-UXvkHjtV92d2RfNkXRe", "name": "📥 Inbox – עדכונים ממתינים" },
+    "company_a": { "id": "1NKSA5ail4zxW_vvKSg-kDYzNNs5qOLyl", "name": "🏢 Company-A – חברה א" },
+    "company_b": { "id": "1NH-z7WftWg4fjpX_VpFFiW9UpUUx21BA", "name": "🏢 Company-B – חברה ב" },
+    "nonprofit": { "id": "1wVeVp0y1FH_0U_OZgK1XDV9GVNWu_5K6", "name": "🤝 Nonprofit – עמותה" },
+    "personal": { "id": "1B8fyTJg_8_NyMrEyv5j2RheHAqelDEEc", "name": "🏠 Personal – אישי" }
+  },
+  "readmeDoc": { "id": "1ItSWkztlWYCbtmTFjKQU139TI4d-_ZdtS_w__e6_skc" },
+  "entities": ["Company-A", "Company-B", "Nonprofit", "Personal"],
+  "tables": {
+    "leads": { "fileId": "1et0R7j6dHXjRzXpdV1WEBhxrTZHRGyj5q7Vq2ZmjHFo", "title": "Leads – לידים" },
+    "meetings": { "fileId": "1_3fnZH2sVnV8Cfwwt4sVzO24vKmN9ZPbN2SbYqm4e6Y", "title": "Meetings – ישיבות" },
+    "opportunities": { "fileId": "1WjVZ2NHnNxtKIHhlJF0BO89fy6Mr00OO5yivfS6azZU", "title": "Opportunities – הזדמנויות" },
+    "ideas": { "fileId": "1lGvZAYiL9YM79-M8Js5fRrzQ1K5p0N7vS7oqjY2iEZM", "title": "Ideas – רעיונות" },
+    "campaigns": { "fileId": "181U7NkuFo2lrj1IcMlK0BI5CNp05VvEODR1XqPUC2Ac", "title": "Campaigns – קמפיינים" },
+    "strategy": { "fileId": "1hPD27apQtIra4Ma3RvbM3kqyPJOjib3-7L3UyoPi_rs", "title": "Strategy – אסטרטגיה" },
+    "audit": { "fileId": "1pjekir2ai2Yqpn6F6_nheUzDOqI97le_zjGPWPbRHu4", "title": "Audit – ביקורת ובקרה" },
+    "bizdev": { "fileId": "1NZ17zNS5_Ae90ya2fcf8VuCx51IbA02sjDOn3lNgEGA", "title": "BizDev – פיתוח עסקי" },
+    "tasks": { "fileId": "1wy641bfrkiHNx0Tn6M57aiiZG4MpN3TjTKsp_HNPL7A", "title": "Tasks – משימות" },
+    "decisions": { "fileId": "1RejCcD2W7lMkB3AkDN8GhX7rUpKSSDCqvCjWw2Ull2o", "title": "Decisions – החלטות" },
+    "contacts": { "fileId": "1mhl6cJL5jcPCqCABfEGxPibmdVZZ5Rs-cMRS2KJz9FI", "title": "Contacts – אנשי קשר" }
+  }
+}
