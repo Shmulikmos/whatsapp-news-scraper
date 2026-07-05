@@ -2,6 +2,8 @@
 
 A Node.js automation tool for extracting messages from WhatsApp group chats and exporting them to CSV format. Designed for news teams to track and analyze reporter messages efficiently.
 
+> **Also in this repo:** [Content Factory](content-factory/README.md) — an automated faceless-channel pipeline (topic → AI script → voiceover → rendered vertical video → auto-publish to YouTube Shorts / Instagram Reels / TikTok, with analytics and an AI growth advisor). See `content-factory/README.md` for setup.
+
 ## Features
 
 - [x] **Automated WhatsApp Integration** - Connects to WhatsApp Web using `whatsapp-web.js`

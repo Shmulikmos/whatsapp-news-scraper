@@ -8,7 +8,11 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:exporter": "node run-exporter-tests.js"
+    "test:exporter": "node run-exporter-tests.js",
+    "factory": "node content-factory/cli.js",
+    "factory:run": "node content-factory/cli.js run",
+    "factory:analytics": "node content-factory/cli.js analytics",
+    "factory:advise": "node content-factory/cli.js advise"
   },
   "keywords": [
     "whatsapp",

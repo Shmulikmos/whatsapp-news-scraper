@@ -1,0 +1,49 @@
+name: "Content Factory: weekly analytics + growth advisor"
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"   # Mondays 08:00 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: content-factory
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --omit=dev --ignore-scripts
+
+      - name: Refresh analytics and run growth advisor
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          CHANNEL_NAME: ${{ vars.CHANNEL_NAME }}
+          CHANNEL_NICHE: ${{ vars.CHANNEL_NICHE }}
+          CHANNEL_LANGUAGE: ${{ vars.CHANNEL_LANGUAGE }}
+          CHANNEL_TONE: ${{ vars.CHANNEL_TONE }}
+        run: |
+          node content-factory/cli.js analytics || echo "analytics skipped: $?"
+          node content-factory/cli.js advise
+
+      - name: Commit updated report and queue
+        run: |
+          git config user.name "content-factory-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add content-factory/queue.json content-factory/published.json content-factory/REPORT.md
+          git diff --cached --quiet || git commit -m "chore(content-factory): weekly analytics + new advisor topics [skip ci]"
+          git push
