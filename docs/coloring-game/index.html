@@ -21,7 +21,7 @@
   .screen.active { display:flex; }
 
   /* ---------- home ---------- */
-  #screen-home { justify-content:center; gap:26px; padding:20px; }
+  #screen-home { justify-content:center; gap:18px; padding:20px; }
   #home-title {
     font-size:min(13vw,64px); font-weight:800; color:#fff;
     text-shadow:0 4px 0 rgba(124,77,255,.45), 0 8px 24px rgba(0,0,0,.25);
@@ -38,7 +38,40 @@
   .big-btn:active { transform:scale(.95) translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.18); }
   #btn-gallery  { background:linear-gradient(135deg,#ff6ec4,#ff9a44); }
   #btn-free     { background:linear-gradient(135deg,#42e695,#3bb2b8); }
+  #btn-learn    { background:linear-gradient(135deg,#ffb300,#ff6f00); }
   #btn-mine     { background:linear-gradient(135deg,#7c4dff,#448aff); }
+
+  /* ---------- tutorial viewer ---------- */
+  #screen-tutorial .tut-wrap {
+    flex:1; width:100%; min-height:0; display:flex; flex-direction:column;
+    align-items:center; gap:10px; padding:0 16px calc(14px + env(safe-area-inset-bottom));
+    overflow-y:auto; touch-action:pan-y;
+  }
+  #tut-hint { color:#fff; font-size:17px; font-weight:700; text-shadow:0 2px 4px rgba(0,0,0,.25); text-align:center; }
+  #tut-img-box {
+    background:#fff; border-radius:22px; box-shadow:0 6px 20px rgba(0,0,0,.25);
+    width:min(88vw, 46vh); aspect-ratio:1/1; overflow:hidden; flex-shrink:0;
+  }
+  #tut-img { width:100%; height:100%; display:block; }
+  #tut-text {
+    background:#ffffffe6; color:#5a4a9e; font-size:21px; font-weight:700;
+    border-radius:18px; padding:12px 18px; text-align:center; min-height:74px;
+    width:min(88vw,460px); display:flex; align-items:center; justify-content:center;
+  }
+  #tut-dots { display:flex; gap:8px; }
+  .tdot { width:14px; height:14px; border-radius:50%; background:#ffffff88; }
+  .tdot.on { background:#ffab00; outline:3px solid #fff; }
+  #tut-nav { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+  .tut-btn {
+    border:none; border-radius:18px; font-size:20px; font-weight:800; padding:13px 22px;
+    cursor:pointer; color:#fff; box-shadow:0 4px 0 rgba(0,0,0,.15); transition:transform .1s;
+    font-family:inherit;
+  }
+  .tut-btn:active { transform:scale(.93); }
+  .tut-btn:disabled { opacity:.4; }
+  #btn-tut-prev { background:#90a4ae; }
+  #btn-tut-next { background:linear-gradient(135deg,#42e695,#3bb2b8); }
+  #btn-tut-color { background:linear-gradient(135deg,#ff6ec4,#ff9a44); display:none; }
   .home-emojis { font-size:34px; letter-spacing:8px; animation: floaty 4s ease-in-out infinite reverse; }
 
   /* ---------- gallery / creations ---------- */
@@ -154,6 +187,7 @@
   <div id="home-title">צביעה קסומה</div>
   <button class="big-btn" id="btn-gallery">🎨 דפי צביעה</button>
   <button class="big-btn" id="btn-free">💫 ציור קסם חופשי</button>
+  <button class="big-btn" id="btn-learn">✏️ לומדים לצייר</button>
   <button class="big-btn" id="btn-mine">⭐ היצירות שלי</button>
   <div class="home-emojis">🖌️ 🎀 🦋</div>
 </div>
@@ -176,6 +210,36 @@
     <span style="width:52px"></span>
   </div>
   <div class="grid" id="creations-grid"></div>
+</div>
+
+<!-- ============ TUTORIALS GALLERY ============ -->
+<div id="screen-tutorials" class="screen">
+  <div class="top-strip">
+    <button class="round-btn" data-nav="home">🏠</button>
+    <h2>לומדים לצייר ✏️</h2>
+    <span style="width:52px"></span>
+  </div>
+  <div class="grid" id="tutorials-grid"></div>
+</div>
+
+<!-- ============ TUTORIAL VIEWER ============ -->
+<div id="screen-tutorial" class="screen">
+  <div class="top-strip">
+    <button class="round-btn" id="btn-tut-back">⬅️</button>
+    <h2 id="tut-title"></h2>
+    <span style="width:52px"></span>
+  </div>
+  <div class="tut-wrap">
+    <div id="tut-hint">📄 קחו דף נייר ועיפרון — ומציירים ביחד, שלב אחרי שלב!</div>
+    <div id="tut-img-box"><img id="tut-img" alt=""></div>
+    <div id="tut-text"></div>
+    <div id="tut-dots"></div>
+    <div id="tut-nav">
+      <button class="tut-btn" id="btn-tut-prev">➡️ שלב אחורה</button>
+      <button class="tut-btn" id="btn-tut-next">השלב הבא ⬅️</button>
+      <button class="tut-btn" id="btn-tut-color">🎨 לצבוע אותו במשחק</button>
+    </div>
+  </div>
 </div>
 
 <!-- ============ DRAW ============ -->
@@ -569,6 +633,82 @@ const PAGES = [
 }
 ];
 
+/* ---------- learn-to-draw tutorials (step by step, on real paper) ---------- */
+const TUTORIALS = [
+{ name:'חתול', page:'חתול', steps:[
+  { t:'מציירים עיגול גדול באמצע הדף — זה הראש של החתול! 🐱',
+    a:'<circle cx="384" cy="404" r="218"/>' },
+  { t:'מוסיפים שני משולשים למעלה — אלה האוזניים המחודדות',
+    a:'<path d="M232 272 L258 108 L382 202 Z"/><path d="M536 272 L510 108 L386 202 Z"/>' },
+  { t:'שני עיגולים עם נקודה שחורה בפנים — עיניים נוצצות! 👀',
+    a:'<circle cx="302" cy="372" r="32"/><circle cx="302" cy="372" r="11" fill="#333333"/><circle cx="466" cy="372" r="32"/><circle cx="466" cy="372" r="11" fill="#333333"/>' },
+  { t:'משולש קטן הפוך בשביל האף, קו קצר למטה — ושני חצאי חיוך לפה 😊',
+    a:'<path d="M362 452 L406 452 L384 482 Z"/><path d="M384 482 L384 512"/><path d="M384 512 Q350 548 318 518"/><path d="M384 512 Q418 548 450 518"/>' },
+  { t:'קווים ארוכים בצדדים — שפם! לחתול יש שפם משני הצדדים',
+    a:'<path d="M170 420 L262 428"/><path d="M172 470 L262 458"/><path d="M598 420 L506 428"/><path d="M596 470 L506 458"/>' }
+]},
+{ name:'דג', page:'דג', steps:[
+  { t:'מציירים ביצה שוכבת (אליפסה) — זה הגוף של הדג 🐟',
+    a:'<ellipse cx="360" cy="390" rx="172" ry="112"/>' },
+  { t:'משולש גדול מאחור — זה הזנב שעוזר לו לשחות!',
+    a:'<path d="M516 390 L648 302 L648 478 Z"/>' },
+  { t:'סנפיר גלי למעלה וסנפיר קטן על הבטן',
+    a:'<path d="M300 292 Q350 205 445 252 Q385 285 330 292 Z"/><ellipse cx="362" cy="430" rx="52" ry="28" transform="rotate(-20 362 430)"/>' },
+  { t:'עיגול עם נקודה — עין, וחיוך קטן — פה 😄',
+    a:'<circle cx="282" cy="352" r="24"/><circle cx="282" cy="352" r="9" fill="#333333"/><path d="M216 420 Q232 436 250 424"/>' },
+  { t:'כמה עיגולים קטנים למעלה — בועות אוויר! בלוב-בלוב 💦',
+    a:'<circle cx="600" cy="180" r="26"/><circle cx="660" cy="118" r="17"/><circle cx="556" cy="112" r="12"/>' }
+]},
+{ name:'פרפר', page:'פרפר', steps:[
+  { t:'מציירים גוף ארוך וצר באמצע, ועיגול קטן למעלה — הראש 🦋',
+    a:'<ellipse cx="384" cy="410" rx="36" ry="125"/><circle cx="384" cy="258" r="38"/>' },
+  { t:'שני קווים מתעגלים מהראש עם נקודה בסוף — מחושים!',
+    a:'<path d="M370 232 Q330 160 288 150" /><circle cx="284" cy="146" r="12"/><path d="M398 232 Q438 160 480 150" /><circle cx="484" cy="146" r="12"/>' },
+  { t:'שתי כנפיים גדולות למעלה — כמו עלים ענקיים',
+    a:'<ellipse cx="248" cy="300" rx="115" ry="92" transform="rotate(-25 248 300)"/><ellipse cx="520" cy="300" rx="115" ry="92" transform="rotate(25 520 300)"/>' },
+  { t:'ושתי כנפיים קטנות יותר למטה',
+    a:'<ellipse cx="252" cy="478" rx="88" ry="72" transform="rotate(18 252 478)"/><ellipse cx="516" cy="478" rx="88" ry="72" transform="rotate(-18 516 478)"/>' },
+  { t:'עיגולים בתוך הכנפיים — קישוטים יפים! אפשר להוסיף כמה שרוצים ✨',
+    a:'<circle cx="238" cy="295" r="34"/><circle cx="530" cy="295" r="34"/><circle cx="250" cy="480" r="26"/><circle cx="518" cy="480" r="26"/>' }
+]},
+{ name:'גור כלב ים', page:'גור כלב ים', steps:[
+  { t:'מציירים ענן גדול ועגלגל — זה הגוף הרך של הגור 🦭',
+    a:'<path d="M384 175 Q505 175 528 290 Q640 330 655 450 Q668 560 545 588 Q470 606 384 606 Q298 606 223 588 Q100 560 113 450 Q128 330 240 290 Q263 175 384 175 Z"/>' },
+  { t:'שני עיגולים גדולים עם נקודה — עיניים מתוקות',
+    a:'<circle cx="322" cy="300" r="28"/><circle cx="322" cy="300" r="12" fill="#333333"/><circle cx="446" cy="300" r="28"/><circle cx="446" cy="300" r="12" fill="#333333"/>' },
+  { t:'משולש קטן לאף ושני חיוכים קטנים לפה',
+    a:'<path d="M366 348 L402 348 L384 372 Z"/><path d="M384 372 L384 386"/><path d="M384 386 Q368 402 352 394 M384 386 Q400 402 416 394"/>' },
+  { t:'נקודות שפם בצדדים ושני עיגולים — לחיים ורודות! ☺️',
+    a:'<circle cx="330" cy="360" r="4" fill="#333333"/><circle cx="316" cy="372" r="4" fill="#333333"/><circle cx="334" cy="382" r="4" fill="#333333"/><circle cx="438" cy="360" r="4" fill="#333333"/><circle cx="452" cy="372" r="4" fill="#333333"/><circle cx="434" cy="382" r="4" fill="#333333"/><circle cx="268" cy="372" r="18"/><circle cx="500" cy="372" r="18"/>' },
+  { t:'זנב קטן בצד — וסיימנו! גור כלב ים חמוד',
+    a:'<path d="M545 585 Q600 620 640 610 Q600 585 585 565 Z"/>' }
+]},
+{ name:'אריה', page:'אריה', steps:[
+  { t:'מציירים עיגול גדול — זה הפרצוף של האריה 🦁',
+    a:'<circle cx="384" cy="390" r="176"/>' },
+  { t:'עיגול ענק מסביב — זו הרעמה! מוסיפים קווים קצרים כמו שמש',
+    a:'<circle cx="384" cy="390" r="252"/><path d="M569 390 L628 390 M384 575 L384 634 M199 390 L140 390 M384 205 L384 146"/><path d="M515 521 L557 563 M253 521 L211 563 M253 259 L211 217 M515 259 L557 217"/>' },
+  { t:'שני עיגולים קטנים למעלה — אוזניים עגולות',
+    a:'<circle cx="257" cy="248" r="38"/><circle cx="511" cy="248" r="38"/>' },
+  { t:'עיניים עגולות עם נקודה באמצע',
+    a:'<circle cx="318" cy="345" r="26"/><circle cx="318" cy="345" r="10" fill="#333333"/><circle cx="450" cy="345" r="26"/><circle cx="450" cy="345" r="10" fill="#333333"/>' },
+  { t:'אף משולש, פה מחייך ושפם — שאגהההה! 🦁',
+    a:'<path d="M356 415 L412 415 L384 452 Z"/><path d="M384 452 L384 474"/><path d="M384 474 Q348 506 316 484"/><path d="M384 474 Q420 506 452 484"/><path d="M300 440 L240 430 M300 460 L242 462 M468 440 L528 430 M468 460 L526 462"/>' }
+]},
+{ name:'ינשוף', page:'ינשוף', steps:[
+  { t:'מציירים ביצה גדולה עומדת — זה הגוף של הינשוף 🦉',
+    a:'<ellipse cx="384" cy="430" rx="185" ry="215"/>' },
+  { t:'שני משולשים קטנים למעלה — אוזני נוצות!',
+    a:'<path d="M262 268 L225 160 L330 235 Z"/><path d="M506 268 L543 160 L438 235 Z"/>' },
+  { t:'עיניים ענקיות! עיגול גדול, בתוכו עיגול קטן, ובאמצע נקודה',
+    a:'<circle cx="308" cy="340" r="68"/><circle cx="308" cy="340" r="30"/><circle cx="308" cy="340" r="13" fill="#333333"/><circle cx="460" cy="340" r="68"/><circle cx="460" cy="340" r="30"/><circle cx="460" cy="340" r="13" fill="#333333"/>' },
+  { t:'מעוין קטן בין העיניים — מקור, וביצה קטנה על הבטן עם קשקושים גליים — נוצות',
+    a:'<path d="M384 402 L412 434 L384 468 L356 434 Z"/><ellipse cx="384" cy="560" rx="105" ry="85"/><path d="M300 545 Q320 565 340 545 Q360 565 380 545 Q400 565 420 545 Q440 565 465 545"/><path d="M315 588 Q335 608 355 588 Q375 608 395 588 Q415 608 435 588"/>' },
+  { t:'קשת בכל צד — כנפיים, קווים קטנים למטה — רגליים, וענף לעמוד עליו!',
+    a:'<path d="M215 385 Q158 480 255 570"/><path d="M553 385 Q610 480 513 570"/><path d="M330 645 L330 670 M350 645 L350 675 M370 645 L370 670"/><path d="M400 645 L400 670 M420 645 L420 675 M440 645 L440 670"/><path d="M160 692 L610 692 M540 692 Q570 672 592 668"/>' }
+]}
+];
+
 const COLORS = ['#e53935','#ff7043','#ffb300','#ffee58','#9ccc65','#43a047','#00e676','#26c6da',
   '#29b6f6','#1e88e5','#5e35b1','#8e24aa','#d81b60','#f06292','#ff80ab','#f8bbd0',
   '#ffcc99','#8d6e63','#5d4037','#9e9e9e','#212121','#ffffff'];
@@ -635,6 +775,75 @@ PAGES.forEach((p, i)=>{
   b.addEventListener('click', ()=>{ sndPop(); openColoring(i); });
   galleryGrid.appendChild(b);
 });
+
+/* ---------- learn-to-draw ---------- */
+const GRAY = '#c9c9c9';
+function tutSvg(tut, upto, current){
+  // steps 0..upto-1 in gray, step `current` (if given) in black
+  const done = tut.steps.slice(0, upto).map(s=>s.a).join('').replaceAll('#333333', GRAY);
+  const cur = current != null ? tut.steps[current].a : '';
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 768">' +
+    '<rect x="-10" y="-10" width="788" height="788" fill="#ffffff" stroke="none"/>' +
+    '<g fill="none" stroke="' + GRAY + '" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">' + done + '</g>' +
+    '<g fill="none" stroke="#333333" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">' + cur + '</g>' +
+    '</svg>';
+}
+function tutFullSvg(tut){
+  const all = tut.steps.map(s=>s.a).join('');
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 768">' +
+    '<rect x="-10" y="-10" width="788" height="788" fill="#ffffff" stroke="none"/>' +
+    '<g fill="none" stroke="#333333" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">' + all + '</g>' +
+    '</svg>';
+}
+
+const tutorialsGrid = $('#tutorials-grid');
+TUTORIALS.forEach((tut, i)=>{
+  const b = document.createElement('button');
+  b.className = 'thumb';
+  b.innerHTML = '<img src="' + svgUri(tutFullSvg(tut)) + '" alt=""><span class="cap">' + tut.name + '</span>';
+  b.addEventListener('click', ()=>{ sndPop(); openTutorial(i); });
+  tutorialsGrid.appendChild(b);
+});
+
+let curTut = 0, curStep = 0;
+function openTutorial(i){
+  curTut = i; curStep = 0;
+  renderTutStep();
+  show('screen-tutorial');
+}
+function renderTutStep(){
+  const tut = TUTORIALS[curTut];
+  const n = tut.steps.length;
+  const finished = curStep >= n;
+  $('#tut-title').textContent = 'מציירים ' + tut.name;
+  $('#tut-img').src = svgUri(finished ? tutFullSvg(tut) : tutSvg(tut, curStep, curStep));
+  $('#tut-text').textContent = finished
+    ? 'כל הכבוד! ציירתם ' + tut.name + ' לבד! 🎉 עכשיו אפשר לצבוע אותו על הנייר — או כאן במשחק'
+    : 'שלב ' + (curStep+1) + ': ' + tut.steps[curStep].t;
+  const dots = $('#tut-dots');
+  dots.innerHTML = '';
+  for (let i=0; i<=n; i++){
+    const d = document.createElement('span');
+    d.className = 'tdot' + (i===curStep ? ' on' : '');
+    dots.appendChild(d);
+  }
+  $('#btn-tut-prev').disabled = curStep === 0;
+  $('#btn-tut-next').style.display = finished ? 'none' : 'inline-block';
+  $('#btn-tut-color').style.display = finished ? 'inline-block' : 'none';
+}
+$('#btn-tut-prev').addEventListener('click', ()=>{ if(curStep>0){ curStep--; sndPick(); renderTutStep(); } });
+$('#btn-tut-next').addEventListener('click', ()=>{
+  curStep++;
+  if (curStep >= TUTORIALS[curTut].steps.length) sndTada(); else sndPick();
+  renderTutStep();
+});
+$('#btn-tut-color').addEventListener('click', ()=>{
+  sndPop();
+  const idx = PAGES.findIndex(p=>p.name === TUTORIALS[curTut].page);
+  if (idx >= 0) openColoring(idx); else show('screen-gallery');
+});
+$('#btn-tut-back').addEventListener('click', ()=>{ sndPop(); show('screen-tutorials'); });
+$('#btn-learn').addEventListener('click', ()=>{ sndPop(); show('screen-tutorials'); });
 
 /* ---------- canvas sizing ---------- */
 function fitCanvas(){
