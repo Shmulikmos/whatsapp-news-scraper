@@ -72,6 +72,9 @@
   #btn-tut-prev { background:#90a4ae; }
   #btn-tut-next { background:linear-gradient(135deg,#42e695,#3bb2b8); }
   #btn-tut-color { background:linear-gradient(135deg,#ff6ec4,#ff9a44); display:none; }
+  #btn-tut-precision { background:linear-gradient(135deg,#ffb300,#ff6f00); display:none; }
+  #btn-tut-grid { background:#5c6bc0; display:none; }
+  #btn-tut-grid.on { outline:4px solid #fff176; }
   .home-emojis { font-size:34px; letter-spacing:8px; animation: floaty 4s ease-in-out infinite reverse; }
 
   /* ---------- gallery / creations ---------- */
@@ -237,6 +240,8 @@
     <div id="tut-nav">
       <button class="tut-btn" id="btn-tut-prev">➡️ שלב אחורה</button>
       <button class="tut-btn" id="btn-tut-next">השלב הבא ⬅️</button>
+      <button class="tut-btn" id="btn-tut-precision">🎯 אתגר הדיוק</button>
+      <button class="tut-btn" id="btn-tut-grid">▦ רשת עזר</button>
       <button class="tut-btn" id="btn-tut-color">🎨 לצבוע אותו במשחק</button>
     </div>
   </div>
@@ -709,6 +714,127 @@ const TUTORIALS = [
 ]}
 ];
 
+/* ---------- realistic reference drawings (precision challenge) ---------- */
+const REALISTIC = {
+'חתול': { tip:'שימו לב: לחתול אמיתי ראש קטן יחסית לגוף, עיניים בצורת שקד (לא עיגול!) והזנב ארוך כמעט כמו הגב.', art:
+  '<ellipse cx="292" cy="216" rx="80" ry="72"/>' +
+  '<path d="M232 160 L248 92 L298 136"/><path d="M250 128 L258 102" stroke-width="3"/>' +
+  '<path d="M324 140 L352 78 L364 148"/><path d="M342 120 L349 96" stroke-width="3"/>' +
+  '<path d="M371 220 Q470 224 525 314 Q570 400 578 510 Q583 590 565 648"/>' +
+  '<path d="M250 286 Q238 336 252 400 Q262 450 266 520 L266 648"/>' +
+  '<path d="M302 430 Q304 530 302 648" stroke-width="4"/>' +
+  '<path d="M334 470 Q338 560 336 648" stroke-width="4"/>' +
+  '<path d="M266 648 Q267 663 288 663 Q304 663 304 649" stroke-width="4"/>' +
+  '<path d="M336 648 Q337 662 356 662 Q370 662 370 649" stroke-width="4"/>' +
+  '<path d="M420 380 Q368 470 398 560 Q412 604 448 634" stroke-width="4"/>' +
+  '<path d="M448 634 Q452 652 482 652 Q508 652 508 638" stroke-width="4"/>' +
+  '<path d="M565 648 Q618 668 560 680 Q460 696 366 678 Q330 672 326 660" stroke-width="4"/>' +
+  '<path d="M366 678 Q460 690 545 682" stroke-width="3"/>' +
+  '<path d="M254 203 Q269 192 285 202 Q269 213 254 203 Z" stroke-width="4"/><path d="M270 196 L270 209" stroke-width="3"/>' +
+  '<path d="M308 201 Q323 190 339 200 Q323 211 308 201 Z" stroke-width="4"/><path d="M324 194 L324 207" stroke-width="3"/>' +
+  '<path d="M284 240 L300 240 L292 250 Z" stroke-width="4"/>' +
+  '<path d="M292 250 Q292 257 285 261 M292 256 Q299 261 306 258" stroke-width="3"/>' +
+  '<path d="M240 246 L180 242 M242 258 L184 266 M246 268 L192 284 M340 242 L400 236 M342 254 L400 258" stroke-width="3"/>' +
+  '<path d="M256 306 L248 316 M260 336 L252 346 M424 254 L434 266 M472 296 L482 308 M512 348 L521 361" stroke-width="3"/>' +
+  '<path d="M424 566 L440 550 M436 586 L452 570 M450 604 L466 588 M274 566 L286 554 M274 596 L288 582" stroke-width="3"/>'
+},
+'דג': { tip:'הגוף של דג אמיתי הוא כמו טיפה שוכבת — עבה באמצע וצר ליד הזנב. הסנפיר העליון מלא קוצים דקים!', art:
+  '<path d="M128 382 Q210 285 345 268 Q505 252 592 335 Q615 352 642 344"/>' +
+  '<path d="M128 382 Q195 478 335 502 Q505 522 592 432 Q615 415 642 406"/>' +
+  '<path d="M642 344 L724 272 Q702 362 710 375 Q702 390 720 470 L642 406"/>' +
+  '<path d="M652 352 L702 306 M652 375 L698 375 M652 396 L700 440" stroke-width="3"/>' +
+  '<path d="M128 382 Q112 372 106 362 M128 382 Q114 392 110 400"/>' +
+  '<path d="M120 398 Q142 412 162 412" stroke-width="4"/>' +
+  '<circle cx="200" cy="352" r="17"/><circle cx="200" cy="352" r="8" fill="#2b2b2b"/><circle cx="204" cy="348" r="2.5" fill="#ffffff" stroke="none"/>' +
+  '<path d="M262 292 Q296 380 258 472" stroke-width="4"/><path d="M242 306 Q270 380 242 456" stroke-width="3"/>' +
+  '<path d="M345 268 L362 196 L380 268 L398 190 L415 266 L438 188 L452 264 L474 198 L486 262"/>' +
+  '<path d="M292 396 Q342 420 336 470 Q300 452 285 418 Z" stroke-width="4"/><path d="M298 404 L330 450" stroke-width="3"/>' +
+  '<path d="M310 496 Q322 552 352 546 L340 492" stroke-width="4"/>' +
+  '<path d="M460 512 Q482 566 520 552 L500 502" stroke-width="4"/>' +
+  '<path d="M268 366 Q430 352 600 372" stroke-width="3"/>' +
+  '<path d="M330 320 Q340 330 330 340 M370 315 Q380 325 370 335 M410 315 Q420 325 410 335 M450 318 Q460 328 450 338 M350 360 Q360 370 350 380 M390 355 Q400 365 390 375 M430 356 Q440 366 430 376 M470 360 Q480 370 470 380 M360 400 Q370 410 360 420 M400 398 Q410 408 400 418 M440 400 Q450 410 440 420 M480 404 Q490 414 480 424 M380 440 Q390 450 380 460 M420 440 Q430 450 420 460 M460 444 Q470 454 460 464" stroke-width="3"/>' +
+  '<path d="M260 470 L274 456 M290 484 L304 470 M320 496 L334 482" stroke-width="3"/>'
+},
+'פרפר': { tip:'שני הצדדים של פרפר אמיתי זהים בדיוק! ציירו את הגוף באמצע, כנף אחת — ואז את אותה כנף הפוך בצד השני.', art:
+  '<path d="M377 292 Q340 240 306 218 M391 292 Q428 240 462 218" stroke-width="3"/>' +
+  '<ellipse cx="303" cy="215" rx="9" ry="5" transform="rotate(35 303 215)" stroke-width="4"/><ellipse cx="465" cy="215" rx="9" ry="5" transform="rotate(-35 465 215)" stroke-width="4"/>' +
+  '<circle cx="384" cy="302" r="12"/>' +
+  '<ellipse cx="384" cy="336" rx="16" ry="26"/>' +
+  '<path d="M377 360 Q368 420 380 462 Q384 470 388 462 Q400 420 391 360"/>' +
+  '<path d="M374 385 L394 385 M373 405 L395 405 M375 425 L393 425 M378 443 L390 443" stroke-width="3"/>' +
+  '<path d="M370 318 Q280 240 200 212 Q140 200 128 248 Q122 300 168 340 Q230 372 366 350 Z"/>' +
+  '<path d="M398 318 Q488 240 568 212 Q628 200 640 248 Q646 300 600 340 Q538 372 402 350 Z"/>' +
+  '<path d="M366 358 Q290 388 248 434 Q222 480 246 516 Q268 542 300 526 Q310 550 300 570 Q330 550 332 522 Q362 486 372 420 Z"/>' +
+  '<path d="M402 358 Q478 388 520 434 Q546 480 522 516 Q500 542 468 526 Q458 550 468 570 Q438 550 436 522 Q406 486 396 420 Z"/>' +
+  '<path d="M368 330 L182 232 M368 336 L152 264 M366 342 L172 320 M366 346 L232 356" stroke-width="3"/>' +
+  '<path d="M400 330 L586 232 M400 336 L616 264 M402 342 L596 320 M402 346 L536 356" stroke-width="3"/>' +
+  '<path d="M368 366 L264 440 M368 372 L264 500 M368 378 L306 516" stroke-width="3"/>' +
+  '<path d="M400 366 L504 440 M400 372 L504 500 M400 378 L462 516" stroke-width="3"/>' +
+  '<path d="M152 234 Q134 288 176 330 M616 234 Q634 288 592 330" stroke-width="3"/>' +
+  '<circle cx="160" cy="254" r="6"/><circle cx="153" cy="286" r="6"/><circle cx="167" cy="314" r="6"/>' +
+  '<circle cx="608" cy="254" r="6"/><circle cx="615" cy="286" r="6"/><circle cx="601" cy="314" r="6"/>' +
+  '<circle cx="258" cy="470" r="7"/><circle cx="292" cy="510" r="10"/><circle cx="510" cy="470" r="7"/><circle cx="476" cy="510" r="10"/>'
+},
+'גור כלב ים': { tip:'גוף של גור כלב ים אמיתי דומה לבננה שמנמנה, העיניים שחורות וגדולות — ואל תשכחו את השפם!', art:
+  '<path d="M205 312 Q222 268 288 270 Q330 270 358 288 Q470 302 560 342 Q625 376 650 462"/>' +
+  '<path d="M205 312 Q160 316 148 354 Q142 390 168 412 Q190 428 218 428"/>' +
+  '<path d="M218 428 Q280 500 390 526 Q510 550 598 520 Q636 506 650 462"/>' +
+  '<path d="M646 466 Q690 430 734 414 Q718 458 700 476 Q676 492 652 490" stroke-width="4"/><path d="M652 494 Q696 502 720 538 Q684 542 660 528 Q644 512 646 496" stroke-width="4"/>' +
+  '<path d="M668 466 L706 442 M672 502 L706 522" stroke-width="3"/>' +
+  '<circle cx="224" cy="352" r="18" fill="#2b2b2b"/><circle cx="227" cy="347" r="4" fill="#ffffff" stroke="none"/>' +
+  '<path d="M200 328 Q216 320 234 326" stroke-width="3"/>' +
+  '<path d="M152 354 Q162 346 172 354 Q168 364 160 364 Q150 360 152 354 Z" stroke-width="4"/>' +
+  '<path d="M164 372 Q180 382 198 380" stroke-width="3"/>' +
+  '<circle cx="196" cy="386" r="2.5" fill="#2b2b2b"/><circle cx="204" cy="394" r="2.5" fill="#2b2b2b"/><circle cx="192" cy="398" r="2.5" fill="#2b2b2b"/>' +
+  '<path d="M198 386 Q240 390 274 384 M200 396 Q238 406 270 404 M194 404 Q228 420 258 424" stroke-width="3"/>' +
+  '<path d="M310 478 Q322 516 368 522 Q344 530 312 516 Q298 500 310 478 Z" stroke-width="4"/>' +
+  '<path d="M330 514 L338 506 M346 519 L354 511" stroke-width="3"/>' +
+  '<path d="M300 300 L308 312 M360 294 L366 306 M420 304 L426 316 M480 322 L486 334 M540 348 L546 360" stroke-width="3"/>' +
+  '<path d="M320 508 L334 494 M360 518 L374 504 M400 526 L414 512 M440 532 L454 518" stroke-width="3"/>' +
+  '<path d="M130 556 L745 556" stroke-width="3"/>'
+},
+'אריה': { tip:'לאריה אמיתי הרעמה מכסה את כל הצוואר והחזה, והגוף ארוך בערך פי שניים מהגובה שלו!', art:
+  '<path d="M212 210 Q184 212 170 232 Q150 252 148 276 Q146 292 158 298 Q150 312 166 320 Q184 332 204 328 Q216 322 222 308"/>' +
+  '<path d="M150 278 Q160 274 164 282 Q158 290 150 284 Z" stroke-width="3"/>' +
+  '<path d="M164 318 Q186 328 204 322" stroke-width="3"/>' +
+  '<circle cx="176" cy="302" r="2.5" fill="#2b2b2b"/><circle cx="186" cy="308" r="2.5" fill="#2b2b2b"/><circle cx="174" cy="312" r="2.5" fill="#2b2b2b"/>' +
+  '<path d="M198 238 Q210 230 222 236 Q210 244 198 238 Z" stroke-width="4"/><circle cx="210" cy="237" r="3" fill="#2b2b2b"/>' +
+  '<path d="M262 182 Q270 158 290 166 Q294 184 278 192" stroke-width="4"/>' +
+  '<path d="M226 168 Q280 118 332 142 Q382 122 410 158 Q402 192 422 222 Q446 256 428 296 Q446 338 420 374 Q430 418 396 440 Q370 478 322 460 Q282 480 250 450 Q212 452 206 414 Q196 380 216 344"/>' +
+  '<path d="M250 220 Q234 262 244 304 M372 222 Q388 268 376 314 M258 382 Q278 414 310 424 M336 404 Q358 420 368 404" stroke-width="3"/>' +
+  '<path d="M424 252 Q505 228 575 240 Q630 250 654 284"/>' +
+  '<path d="M654 284 Q684 318 672 368 Q662 402 636 428"/>' +
+  '<path d="M668 356 Q712 428 694 520 Q684 562 704 590" stroke-width="4"/>' +
+  '<path d="M704 590 Q718 612 702 632 Q688 612 694 592 Z" stroke-width="4"/>' +
+  '<path d="M340 438 Q450 470 556 446" stroke-width="4"/>' +
+  '<path d="M334 446 L330 640 Q330 658 350 658 Q366 658 366 640 L368 470"/>' +
+  '<path d="M386 458 L384 638 Q384 656 404 656 Q418 656 418 638 L418 466" stroke-width="4"/>' +
+  '<path d="M556 442 Q606 486 596 550 L602 640 Q602 658 622 658 Q636 658 636 640 L626 524 Q640 464 614 430"/>' +
+  '<path d="M536 456 L534 636 Q534 654 553 654 Q566 654 566 636 L564 474" stroke-width="4"/>' +
+  '<path d="M342 658 L342 646 M356 658 L356 646 M396 656 L396 644 M410 656 L410 644 M612 658 L612 646 M626 658 L626 646" stroke-width="3"/>' +
+  '<path d="M436 478 L450 464 M466 488 L480 474 M496 492 L510 478 M378 488 L390 476" stroke-width="3"/>' +
+  '<path d="M120 664 L700 664" stroke-width="3"/>'
+},
+'ינשוף': { tip:'העיניים של ינשוף אמיתי נמצאות בקדמת הפנים, בתוך דיסק נוצות — והגוף כמו ביצה מוארכת עם כתמים.', art:
+  '<path d="M384 175 Q292 175 256 278 Q226 360 236 470 Q246 572 302 622 Q342 652 384 652 Q426 652 466 622 Q522 572 532 470 Q542 360 512 278 Q476 175 384 175 Z"/>' +
+  '<path d="M300 190 Q285 150 268 132 Q296 148 318 172"/><path d="M468 190 Q483 150 500 132 Q472 148 450 172"/>' +
+  '<path d="M384 232 Q302 238 296 330 Q300 384 384 390 Q468 384 472 330 Q466 238 384 232 Z"/>' +
+  '<circle cx="336" cy="302" r="24"/><circle cx="336" cy="302" r="11" fill="#2b2b2b"/><circle cx="341" cy="297" r="3.5" fill="#ffffff" stroke="none"/>' +
+  '<circle cx="432" cy="302" r="24"/><circle cx="432" cy="302" r="11" fill="#2b2b2b"/><circle cx="437" cy="297" r="3.5" fill="#ffffff" stroke="none"/>' +
+  '<path d="M310 272 Q336 260 362 274 M406 274 Q432 260 458 272" stroke-width="4"/>' +
+  '<path d="M384 330 Q375 350 384 374 Q393 350 384 330 Z" stroke-width="4"/>' +
+  '<path d="M302 250 L292 240 M298 292 L286 288 M300 332 L288 336 M312 368 L302 376 M466 250 L476 240 M470 292 L482 288 M468 332 L480 336 M456 368 L466 376" stroke-width="3"/>' +
+  '<path d="M278 340 Q248 452 292 588" stroke-width="4"/><path d="M490 340 Q520 452 476 588" stroke-width="4"/>' +
+  '<path d="M282 422 Q296 438 282 454 M286 472 Q300 488 286 504 M292 520 Q306 536 292 552" stroke-width="3"/>' +
+  '<path d="M486 422 Q472 438 486 454 M482 472 Q468 488 482 504 M476 520 Q462 536 476 552" stroke-width="3"/>' +
+  '<path d="M350 430 L356 440 L362 430 M390 445 L396 455 L402 445 M330 470 L336 480 L342 470 M410 480 L416 490 L422 480 M370 500 L376 510 L382 500 M345 540 L351 550 L357 540 M400 545 L406 555 L412 545" stroke-width="3"/>' +
+  '<path d="M344 652 L336 698 M360 653 L356 698 M376 653 L372 698" stroke-width="4"/>' +
+  '<path d="M396 653 L392 698 M412 653 L412 698 M428 652 L434 698" stroke-width="4"/>' +
+  '<path d="M170 702 L610 702 M600 702 Q640 694 668 680" stroke-width="5"/>' +
+  '<path d="M494 420 L506 408 M498 450 L512 436 M500 480 L514 466 M496 510 L510 496" stroke-width="3"/>'
+}
+};
+
 const COLORS = ['#e53935','#ff7043','#ffb300','#ffee58','#9ccc65','#43a047','#00e676','#26c6da',
   '#29b6f6','#1e88e5','#5e35b1','#8e24aa','#d81b60','#f06292','#ff80ab','#f8bbd0',
   '#ffcc99','#8d6e63','#5d4037','#9e9e9e','#212121','#ffffff'];
@@ -805,38 +931,71 @@ TUTORIALS.forEach((tut, i)=>{
   tutorialsGrid.appendChild(b);
 });
 
-let curTut = 0, curStep = 0;
+/* realistic reference svg, optionally with a 4x4 helper grid overlay */
+function realSvg(r, grid){
+  let g = '';
+  if (grid){
+    let lines = '';
+    for (let i=1; i<4; i++){
+      const p = 768 * i / 4;
+      lines += '<path d="M' + p + ' 0 L' + p + ' 768 M0 ' + p + ' L768 ' + p + '"/>';
+    }
+    g = '<g stroke="#64b5f6" stroke-width="3" stroke-dasharray="16 10" fill="none">' + lines + '</g>';
+  }
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 768">' +
+    '<rect x="-10" y="-10" width="788" height="788" fill="#ffffff" stroke="none"/>' +
+    '<g fill="none" stroke="#2b2b2b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">' + r.art + '</g>' +
+    g + '</svg>';
+}
+const GRID_TIP = 'שיטת הרשת: ציירו על הדף רשת עדינה של 4×4 ריבועים בעיפרון, והעתיקו את הציור ריבוע אחרי ריבוע. בסוף מוחקים את קווי הרשת — ונשאר ציור מדויק!';
+
+let curTut = 0, curStep = 0, gridOn = false;
 function openTutorial(i){
-  curTut = i; curStep = 0;
+  curTut = i; curStep = 0; gridOn = false;
   renderTutStep();
   show('screen-tutorial');
 }
 function renderTutStep(){
   const tut = TUTORIALS[curTut];
   const n = tut.steps.length;
-  const finished = curStep >= n;
-  $('#tut-title').textContent = 'מציירים ' + tut.name;
-  $('#tut-img').src = svgUri(finished ? tutFullSvg(tut) : tutSvg(tut, curStep, curStep));
-  $('#tut-text').textContent = finished
-    ? 'כל הכבוד! ציירתם ' + tut.name + ' לבד! 🎉 עכשיו אפשר לצבוע אותו על הנייר — או כאן במשחק'
-    : 'שלב ' + (curStep+1) + ': ' + tut.steps[curStep].t;
+  const finished = curStep === n;
+  const precision = curStep > n;
+  const real = REALISTIC[tut.name];
+  $('#tut-title').textContent = precision ? 'אתגר הדיוק 🎯' : 'מציירים ' + tut.name;
+  if (precision){
+    // future: if real.img is set (an uploaded photo), show it instead of the vector drawing
+    $('#tut-img').src = real.img && !gridOn ? real.img : svgUri(realSvg(real, gridOn));
+    $('#tut-text').textContent = gridOn ? GRID_TIP
+      : 'ככה ' + tut.name + ' נראה באמת! התבוננו טוב-טוב ונסו לצייר בדיוק. ' + real.tip;
+  } else {
+    $('#tut-img').src = svgUri(finished ? tutFullSvg(tut) : tutSvg(tut, curStep, curStep));
+    $('#tut-text').textContent = finished
+      ? 'כל הכבוד! ציירתם ' + tut.name + ' לבד! 🎉 מוכנים לשלב של הציירים הגדולים?'
+      : 'שלב ' + (curStep+1) + ': ' + tut.steps[curStep].t;
+  }
   const dots = $('#tut-dots');
   dots.innerHTML = '';
-  for (let i=0; i<=n; i++){
+  const total = real ? n + 2 : n + 1;
+  for (let i=0; i<total; i++){
     const d = document.createElement('span');
     d.className = 'tdot' + (i===curStep ? ' on' : '');
     dots.appendChild(d);
   }
   $('#btn-tut-prev').disabled = curStep === 0;
-  $('#btn-tut-next').style.display = finished ? 'none' : 'inline-block';
-  $('#btn-tut-color').style.display = finished ? 'inline-block' : 'none';
+  $('#btn-tut-next').style.display = (finished || precision) ? 'none' : 'inline-block';
+  $('#btn-tut-precision').style.display = (finished && real) ? 'inline-block' : 'none';
+  $('#btn-tut-grid').style.display = precision ? 'inline-block' : 'none';
+  $('#btn-tut-grid').classList.toggle('on', gridOn);
+  $('#btn-tut-color').style.display = (finished || precision) ? 'inline-block' : 'none';
 }
-$('#btn-tut-prev').addEventListener('click', ()=>{ if(curStep>0){ curStep--; sndPick(); renderTutStep(); } });
+$('#btn-tut-prev').addEventListener('click', ()=>{ if(curStep>0){ curStep--; gridOn = false; sndPick(); renderTutStep(); } });
 $('#btn-tut-next').addEventListener('click', ()=>{
   curStep++;
   if (curStep >= TUTORIALS[curTut].steps.length) sndTada(); else sndPick();
   renderTutStep();
 });
+$('#btn-tut-precision').addEventListener('click', ()=>{ curStep++; sndTada(); renderTutStep(); });
+$('#btn-tut-grid').addEventListener('click', ()=>{ gridOn = !gridOn; sndPick(); renderTutStep(); });
 $('#btn-tut-color').addEventListener('click', ()=>{
   sndPop();
   const idx = PAGES.findIndex(p=>p.name === TUTORIALS[curTut].page);
