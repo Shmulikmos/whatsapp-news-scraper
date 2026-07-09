@@ -1,5 +1,6 @@
-const CACHE = 'magic-coloring-v5';
-const FILES = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE = 'magic-coloring-v6';
+const FILES = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
+  './refs/lion.jpg', './refs/elephant.jpg', './refs/leopard.jpg', './refs/rhino.jpg', './refs/eagle.jpg', './refs/zebra.jpg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
