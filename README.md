@@ -75,6 +75,34 @@ LOG_LEVEL="info"                 # Logging level: debug, info, warn, error
 | `RETRY_DELAY` | Milliseconds between retries | `30000` | Any integer |
 | `LOG_LEVEL` | Logging verbosity | `info` | `debug`, `info`, `warn`, `error` |
 
+### AI Providers (Grok & Perplexity)
+
+The project can connect to Grok (xAI) and Perplexity through their OpenAI-compatible chat APIs. Add your API keys to `.env`:
+
+```env
+# AI Providers (optional)
+GROK_API_KEY="xai-..."           # From https://console.x.ai
+GROK_MODEL="grok-4-fast"         # Optional, defaults to grok-4-fast
+PERPLEXITY_API_KEY="pplx-..."    # From https://www.perplexity.ai/settings/api
+PERPLEXITY_MODEL="sonar"         # Optional, defaults to sonar
+```
+
+Verify the connections:
+
+```bash
+npm run test:ai
+```
+
+A provider without an API key is reported as "not configured" and skipped. Use the clients in code via `src/aiClients.js`:
+
+```javascript
+const { askGrok, askPerplexity } = require('./src/aiClients');
+
+const grokReply = await askGrok([{ role: 'user', content: 'Summarize this news item...' }]);
+const pplxReply = await askPerplexity([{ role: 'user', content: 'What happened today in...' }]);
+console.log(grokReply.content, pplxReply.content);
+```
+
 ## Usage
 
 ### First Run (QR Authentication)
