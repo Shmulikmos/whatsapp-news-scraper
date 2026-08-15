@@ -8,6 +8,10 @@ yarn-error.log*
 data/
 *.csv
 
+# Authenticator vault - encrypted, but never commit it anyway
+vault.json
+*.vault.json
+
 # Logs
 logs/
 *.log

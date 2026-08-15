@@ -5,6 +5,7 @@
   "description": "WhatsApp News Chat Scraper - Extracts messages from WhatsApp chats and exports to CSV",
   "scripts": {
     "start": "node index.js",
+    "auth": "node authenticator.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

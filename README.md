@@ -16,6 +16,25 @@ A Node.js automation tool for extracting messages from WhatsApp group chats and 
 - [x] **Comprehensive Logging** - Detailed logs with timestamps and log levels
 - [x] **Error Handling** - Graceful error recovery and detailed error reporting
 - [x] **Automated Scheduling** - Built-in macOS launchd integration for periodic scraping (every 10 minutes)
+- [x] **Family & Friends Authenticator** - Shared TOTP codes so the people close to you can confirm it is really you ([guide](docs/AUTHENTICATOR.md))
+
+## Family & Friends Authenticator
+
+A separate, self-contained tool in this repo. You and each contact share one
+secret enrolled in both phones' Google Authenticator, so either of you can prove
+who you are with a 6-digit code that changes every 30 seconds — useful against a
+cloned voice or a hijacked WhatsApp account.
+
+```bash
+npm run auth -- init              # create the encrypted vault
+npm run auth -- add "Keren"       # enroll someone (shows a QR code)
+npm run auth -- code --watch      # your live codes, to read out
+npm run auth -- verify "Keren" 394776   # check a code they gave you
+```
+
+Secrets live encrypted in `data/authenticator/vault.json` and never leave your
+machine. Full instructions, including a Hebrew page to forward to family, are in
+**[docs/AUTHENTICATOR.md](docs/AUTHENTICATOR.md)**.
 
 ## Requirements
 
@@ -297,6 +316,7 @@ reporter,content,date,time,links,hasMedia
 ```
 news-chat-scraper/
 ├── index.js                    # Main entry point
+├── authenticator.js            # Family & friends authenticator CLI
 ├── package.json                # Project metadata and dependencies
 ├── .env                        # Environment configuration (not in git)
 ├── .env.example                # Example environment configuration
@@ -312,24 +332,35 @@ news-chat-scraper/
 │   ├── exporter.js             # CSV export functionality
 │   ├── stateManager.js         # State persistence (last message tracking)
 │   ├── logger.js               # Logging utility
-│   └── config.js               # Configuration loader
+│   ├── config.js               # Configuration loader
+│   └── authenticator/          # Family & friends authenticator
+│       ├── totp.js             # RFC 6238 code generation and verification
+│       ├── vault.js            # Encrypted secret storage
+│       ├── manager.js          # Contact operations
+│       ├── prompt.js           # Hidden passphrase input
+│       └── cli.js              # Command handling
 │
 ├── __tests__/                  # Test suite
 │   ├── setup.test.js           # Test environment setup
 │   ├── parser.test.js          # Parser unit tests
 │   ├── exporter.test.js        # Exporter unit tests
-│   └── stateManager.test.js    # State manager unit tests
+│   ├── stateManager.test.js    # State manager unit tests
+│   ├── totp.test.js            # TOTP unit tests (RFC 6238 vectors)
+│   ├── vault.test.js           # Vault encryption unit tests
+│   └── authenticator.test.js   # Contact manager unit tests
 │
 ├── data/                       # Data directory
 │   ├── output/                 # CSV export files
 │   ├── test-output/            # Test output files
-│   └── state.json              # Last processed message state
+│   ├── state.json              # Last processed message state
+│   └── authenticator/          # Encrypted authenticator vault (not in git)
 │
 ├── logs/                       # Log files
 │   └── scraper_YYYY-MM-DD.log  # Daily log files
 │
 ├── docs/                       # Documentation
 │   ├── EXPORTER_TESTS.md       # Exporter testing guide
+│   ├── AUTHENTICATOR.md        # Family & friends authenticator guide
 │   └── plans/                  # Development planning docs
 │
 └── .wwebjs_auth/               # WhatsApp session data (auto-generated)
