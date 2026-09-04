@@ -45,6 +45,33 @@ function parseArgs(argv) {
 }
 
 /**
+ * Check whether a host is reachable, so a blocked network is diagnosed here
+ * rather than surfacing later as a confusing yt-dlp failure.
+ * @param {string} url - URL to probe
+ * @returns {Promise<{ok: boolean, detail: string}>} Reachability result
+ */
+async function probeHost(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(url, { method: 'HEAD', redirect: 'follow', signal: controller.signal });
+
+    // A proxy denial shows up as 403/407 on a host that is otherwise fine.
+    if (response.status === 403 || response.status === 407) {
+      return { ok: false, detail: `blocked by a proxy or egress policy (HTTP ${response.status})` };
+    }
+
+    return { ok: true, detail: `reachable (HTTP ${response.status})` };
+  } catch (error) {
+    const reason = error.name === 'AbortError' ? 'timed out' : error.message;
+    return { ok: false, detail: `unreachable - ${reason}` };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Report whether the environment is ready to run the pipeline.
  * @returns {Promise<boolean>} True when every requirement is met
  */
@@ -53,6 +80,12 @@ async function runCheck() {
   const sheet = new TopicsSheet();
   const hasKey = Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
 
+  const [youtube, instagram, github] = await Promise.all([
+    probeHost('https://www.youtube.com/'),
+    probeHost('https://www.instagram.com/'),
+    probeHost('https://api.github.com/')
+  ]);
+
   const checks = [
     ['yt-dlp', versions.ytDlp, versions.ytDlp || 'not found - install: pipx install yt-dlp'],
     ['ffmpeg', versions.ffmpeg, versions.ffmpeg || 'not found - needed only for the ASR fallback'],
@@ -60,7 +93,10 @@ async function runCheck() {
     ['Google Sheet', sheet.isConfigured(),
       sheet.isConfigured() ? config.video.sheetId : 'not set - archives locally only'],
     ['Archive dir', true, config.video.archiveDir],
-    ['Summary model', true, config.video.model]
+    ['Summary model', true, config.video.model],
+    ['youtube.com', youtube.ok, youtube.detail],
+    ['instagram.com', instagram.ok, instagram.detail],
+    ['api.github.com', github.ok, github.detail]
   ];
 
   console.log('\nEnvironment check\n' + '='.repeat(60));
@@ -69,7 +105,7 @@ async function runCheck() {
   }
   console.log('');
 
-  return Boolean(versions.ytDlp) && hasKey;
+  return Boolean(versions.ytDlp) && hasKey && (youtube.ok || instagram.ok);
 }
 
 /**
@@ -142,4 +178,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseArgs, runCheck };
+module.exports = { parseArgs, runCheck, probeHost };

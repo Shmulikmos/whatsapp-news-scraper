@@ -993,6 +993,7 @@ window rather than every time.
 | `Unsupported host` | Only YouTube and Instagram links are accepted — this is deliberate |
 | Video is longer than the limit | Raise `MAX_ASR_DURATION_SEC`, or use `--no-asr` |
 | yt-dlp fails on a video that plays fine in a browser | Update it: `pipx upgrade yt-dlp`. Extractors break whenever the sites change |
+| `blocked by a proxy or egress policy` in `npm run check` | A corporate proxy, VPN, or sandbox is refusing the host. The pipeline cannot work until that host is reachable |
 
 ## Tests
 
