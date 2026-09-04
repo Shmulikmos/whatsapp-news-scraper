@@ -116,18 +116,46 @@ async function loadRecord(id) {
  */
 function renderMarkdown(record) {
   const { metadata, summary, entities, github, transcript } = record;
+  const isPage = record.sourceType === 'web';
   const lines = [];
 
   lines.push(`# ${metadata.title || record.id}`);
   lines.push('');
   lines.push(`- **Source**: ${record.url}`);
-  lines.push(`- **Channel**: ${metadata.channel || '—'}`);
+  lines.push(`- **${isPage ? 'Site' : 'Channel'}**: ${metadata.channel || '—'}`);
   lines.push(`- **Published**: ${metadata.publishedAt || '—'}`);
-  lines.push(`- **Duration**: ${metadata.durationSec ? `${Math.round(metadata.durationSec / 60)} min` : '—'}`);
+
+  if (isPage) {
+    lines.push(`- **Page type**: ${metadata.pageType || 'website'}`);
+  } else {
+    lines.push(`- **Duration**: ${metadata.durationSec ? `${Math.round(metadata.durationSec / 60)} min` : '—'}`);
+  }
+
   lines.push(`- **Archived**: ${record.addedAt}`);
-  lines.push(`- **Transcript**: ${record.transcriptSource}${record.truncated ? ' (truncated for summarization)' : ''}`);
+  lines.push(`- **Content**: ${record.transcriptSource}${record.truncated ? ' (truncated for summarization)' : ''}`);
   lines.push(`- **Confidence**: ${summary.confidence}`);
   lines.push('');
+
+  if (summary.pending) {
+    lines.push(`> ⏳ Not summarized yet — ${summary.pendingReason}.`);
+    lines.push('> Re-run `npm run digest -- <url> --force` to complete this record.');
+    lines.push('');
+  }
+
+  if (isPage && metadata.product) {
+    const p = metadata.product;
+    lines.push('## Product');
+    lines.push('');
+    lines.push('| Field | Value |');
+    lines.push('| --- | --- |');
+    lines.push(`| Name | ${p.name || '—'} |`);
+    lines.push(`| Brand | ${p.brand || '—'} |`);
+    lines.push(`| SKU | ${p.sku || '—'} |`);
+    lines.push(`| Price | ${p.price !== null && p.price !== undefined ? `${p.price} ${p.currency}` : '—'} |`);
+    lines.push(`| Availability | ${p.availability || '—'} |`);
+    lines.push(`| Rating | ${p.rating !== null && p.rating !== undefined ? `${p.rating} (${p.reviewCount ?? 0} reviews)` : '—'} |`);
+    lines.push('');
+  }
 
   lines.push('## TL;DR');
   lines.push('');
@@ -203,7 +231,7 @@ function renderMarkdown(record) {
   }
 
   if (transcript) {
-    lines.push('## Transcript');
+    lines.push(isPage ? '## Page text' : '## Transcript');
     lines.push('');
     lines.push('```text');
     lines.push(transcript);
@@ -235,6 +263,7 @@ async function saveRecord(record) {
   const entry = {
     id: safeRecord.id,
     url: safeRecord.url,
+    sourceType: safeRecord.sourceType || 'video',
     platform: safeRecord.platform,
     title: safeRecord.metadata.title,
     channel: safeRecord.metadata.channel,
@@ -243,6 +272,7 @@ async function saveRecord(record) {
     topics: (safeRecord.summary.topics || []).map((t) => t.name),
     tldr: safeRecord.summary.tldr,
     transcriptSource: safeRecord.transcriptSource,
+    pending: Boolean(safeRecord.summary.pending),
     archivePath: path.relative(process.cwd(), markdownPath)
   };
 

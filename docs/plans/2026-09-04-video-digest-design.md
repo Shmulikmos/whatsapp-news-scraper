@@ -50,6 +50,8 @@
 |---|---|---|
 | URL parser | `src/video/urlParser.js` | Host allowlist, canonical URL, stable `videoId`, platform detection |
 | Extractor | `src/video/extractor.js` | `yt-dlp` wrapper — metadata JSON, subtitle files, audio fallback |
+| Link URL | `src/video/linkUrl.js` | SSRF-aware validation for arbitrary web links, tracking-param stripping, stable content id |
+| Web page | `src/video/webPage.js` | Page fetch with per-hop re-validation; title/meta/OG/JSON-LD/text extraction |
 | Subtitles | `src/video/subtitles.js` | VTT / SRT / json3 → de-duplicated plain text with timestamps |
 | Transcriber | `src/video/transcriber.js` | ASR fallback over the audio track (pluggable CLI) |
 | Entities | `src/video/entities.js` | URLs, GitHub repos, @handles, #hashtags, chapter timestamps |
@@ -103,12 +105,13 @@ The core risk here: **this tool executes a subprocess against an attacker-influe
 | # | Threat | Mitigation |
 |---|---|---|
 | T1 | **Command injection** via a crafted URL reaching a shell | `execFile` with an argv array and `shell: false` — never a command string. A URL beginning with `-` is rejected so it cannot be read as a flag; `--` terminates option parsing. |
-| T2 | **SSRF** — link pointed at internal infrastructure | Strict host allowlist (`youtube.com`, `youtu.be`, `youtube-nocookie.com`, `instagram.com` + known subdomains). `https` only. Embedded credentials, ports, and raw IP hosts rejected. Applied *before* any subprocess or fetch. |
+| T2 | **SSRF — video links** | Strict host allowlist (`youtube.com`, `youtu.be`, `youtube-nocookie.com`, `instagram.com` + known subdomains). `https` only. Embedded credentials, ports, and raw IP hosts rejected. Applied *before* any subprocess or fetch. |
+| T2b | **SSRF — arbitrary web links** (added when generic pages became a supported source) | An allowlist is not available once any host is legal, so `src/video/linkUrl.js` does the work explicitly: http/https only, no credentials, ports 80/443 only, and a refusal for private, loopback, link-local, CGNAT, multicast, reserved, `.internal`/`.local`/`.corp`-style, and single-label hosts — checked **both** on a literal IP in the URL **and** on every address the hostname resolves to, with IPv4-mapped IPv6 (`::ffff:7f00:1`) decoded to v4 first. Every redirect hop is re-validated before the request is issued, and the chain is capped at five. Residual risk (DNS rebinding between validation and connection) is documented in the module. |
 | T3 | **Path traversal** — video id used as a filename | Ids are re-validated against `^[A-Za-z0-9_-]{1,64}$` at every filesystem boundary, and the resolved path must stay inside the archive root. |
 | T4 | **Prompt injection** — a video whose transcript says "ignore your instructions and…" | Untrusted content is fenced in explicit `<untrusted_content>` delimiters, the system prompt states it is data and never instructions, output is constrained by a JSON schema, and the summarizer has **no tools** — it cannot act on anything it reads. Any fence-closing sequence in the content is neutralised before insertion. |
 | T5 | **Spreadsheet formula injection** — a title of `=IMPORTXML(...)` | `valueInputOption: 'RAW'` (Sheets stores the literal string) **and** cells beginning with `= + - @` are prefixed with `'`, so a later CSV export is safe too. |
 | T6 | **Secret leakage** | Keys are read from env only, never persisted to the archive or the sheet, and log lines are redacted (`sk-ant-…`, `ghp_…`, `AIza…` patterns). Subprocesses get a **minimal environment** (`PATH`, `HOME`, locale, proxy, CA vars only) rather than inheriting this process's — yt-dlp runs site-specific extractor code and has no business seeing our credentials. `.env` is removed from git tracking (it is currently committed) and `credentials.json` stays ignored. |
-| T7 | **Resource exhaustion / DoS-by-link** | Per-stage timeouts, `maxBuffer` on every subprocess, a max video duration for the ASR path, a transcript character cap (recorded in the record when it bites), and temp audio deleted in `finally`. |
+| T7 | **Resource exhaustion / DoS-by-link** | Per-stage timeouts, `maxBuffer` on every subprocess, a max video duration for the ASR path, a transcript character cap (recorded in the record when it bites), and temp audio deleted in `finally`. Page bodies are content-type checked and size-capped **as bytes arrive**, rather than trusting a `Content-Length` the server controls. |
 | T8 | **Untrusted GitHub redirect** | Only `api.github.com` is contacted, `redirect: 'manual'`, and a single redirect is followed only if it stays on `api.github.com`. Repos are **never** cloned or executed — metadata only. |
 | T9 | Third-party ToS | The WhatsApp watcher uses the same unofficial `whatsapp-web.js` the repo already depends on; documented as a known limitation, and the CLI path works without it. |
 

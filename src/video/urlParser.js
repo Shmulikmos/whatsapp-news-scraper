@@ -28,6 +28,9 @@ const ALLOWED_HOSTS = {
   ])
 };
 
+/** Id prefixes the archive accepts: the video platforms plus generic web links. */
+const KNOWN_SOURCES = new Set([...Object.keys(ALLOWED_HOSTS), 'web']);
+
 /** Ids are used as filenames and as sheet keys - keep them boring. */
 const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -201,8 +204,8 @@ function idToSlug(id) {
   const platform = parts.length === 2 ? parts[0] : null;
   const videoId = parts.length === 2 ? parts[1] : parts[0];
 
-  if (platform !== null && !Object.prototype.hasOwnProperty.call(ALLOWED_HOSTS, platform)) {
-    throw new InvalidVideoUrlError(`Unknown platform in id: ${id}`);
+  if (platform !== null && !KNOWN_SOURCES.has(platform)) {
+    throw new InvalidVideoUrlError(`Unknown source in id: ${id}`);
   }
 
   if (!SAFE_ID.test(videoId)) {
@@ -217,5 +220,6 @@ module.exports = {
   findVideoUrls,
   idToSlug,
   InvalidVideoUrlError,
-  ALLOWED_HOSTS
+  ALLOWED_HOSTS,
+  KNOWN_SOURCES
 };

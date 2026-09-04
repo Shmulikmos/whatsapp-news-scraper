@@ -19,9 +19,9 @@ const logger = require('../logger');
 const { formatReposCell } = require('./githubEnricher');
 
 const VIDEO_HEADERS = [
-  'id', 'added_at', 'platform', 'url', 'title', 'channel', 'published_at',
+  'id', 'added_at', 'source_type', 'platform', 'url', 'title', 'channel', 'published_at',
   'duration_min', 'content_type', 'topics', 'tldr', 'key_points', 'action_items',
-  'tools_mentioned', 'people', 'github_repos', 'links', 'transcript_source',
+  'tools_mentioned', 'people', 'product', 'github_repos', 'links', 'transcript_source',
   'confidence', 'archive_path'
 ];
 
@@ -193,6 +193,7 @@ class TopicsSheet {
     return [
       record.id,
       record.addedAt,
+      record.sourceType || 'video',
       record.platform,
       record.url,
       metadata.title,
@@ -206,6 +207,7 @@ class TopicsSheet {
       (summary.actionItems || []).join('\n'),
       (summary.toolsMentioned || []).map((t) => `${t.name} — ${t.note}`).join('\n'),
       (summary.people || []).join('; '),
+      formatProductCell(metadata.product),
       formatReposCell(github),
       (entities.links || []).map((l) => l.url).join('\n'),
       record.transcriptSource,
@@ -358,6 +360,27 @@ class TopicsSheet {
 }
 
 /**
+ * Render a product's declared facts as a single cell.
+ * @param {Object|null} product - Product facts from JSON-LD
+ * @returns {string} One fact per line, empty when the page is not a product
+ */
+function formatProductCell(product) {
+  if (!product) {
+    return '';
+  }
+
+  return [
+    product.name && `Name: ${product.name}`,
+    product.brand && `Brand: ${product.brand}`,
+    product.price !== null && product.price !== undefined && `Price: ${product.price} ${product.currency}`.trim(),
+    product.availability && `Availability: ${product.availability}`,
+    product.rating !== null && product.rating !== undefined &&
+      `Rating: ${product.rating} (${product.reviewCount ?? 0} reviews)`,
+    product.sku && `SKU: ${product.sku}`
+  ].filter(Boolean).join('\n');
+}
+
+/**
  * Convert a 1-based column index to its A1 letter(s).
  * @param {number} index - 1-based column index
  * @returns {string} Column letters, e.g. 27 → "AA"
@@ -375,4 +398,6 @@ function columnLetter(index) {
   return letters;
 }
 
-module.exports = { TopicsSheet, sanitizeCell, columnLetter, VIDEO_HEADERS, TOPIC_HEADERS };
+module.exports = {
+  TopicsSheet, sanitizeCell, columnLetter, formatProductCell, VIDEO_HEADERS, TOPIC_HEADERS
+};

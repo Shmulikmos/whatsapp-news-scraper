@@ -12,9 +12,12 @@ const logger = require('../src/logger');
 const USAGE = `
 Usage: npm run ask -- "<question>" [options]
        npm run ask -- --topics
+       npm run ask -- --pending
 
 Options:
-  --topics        List the archive's topics and how many videos sit under each
+  --topics        List the archive's topics and how many sources sit under each
+  --pending       List records saved but not yet summarized, with the command
+                  to complete each one
   --limit N       How many videos to put in context (default 8, max 50)
   --transcripts   Include transcript text in context - slower and pricier, but
                   answers questions the summaries do not cover
@@ -29,7 +32,9 @@ Options:
  */
 function parseArgs(argv) {
   const parts = [];
-  const parsed = { limit: 8, transcripts: false, fromSheet: false, topics: false, help: false };
+  const parsed = {
+    limit: 8, transcripts: false, fromSheet: false, topics: false, pending: false, help: false
+  };
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -45,6 +50,8 @@ function parseArgs(argv) {
       parsed.fromSheet = true;
     } else if (arg === '--topics') {
       parsed.topics = true;
+    } else if (arg === '--pending') {
+      parsed.pending = true;
     } else if (arg === '--help') {
       parsed.help = true;
     } else if (!arg.startsWith('--')) {
@@ -82,6 +89,27 @@ async function printTopics() {
 }
 
 /**
+ * List records that were saved but never summarized.
+ * @returns {Promise<void>}
+ */
+async function printPending() {
+  const index = await loadIndex();
+  const pending = index.videos.filter((entry) => entry.pending);
+
+  if (pending.length === 0) {
+    console.log(`\nNothing pending - all ${index.videos.length} archived sources are summarized.\n`);
+    return;
+  }
+
+  console.log(`\n${pending.length} of ${index.videos.length} saved sources are not summarized yet:\n`);
+  for (const entry of pending) {
+    console.log(`  ${entry.title || entry.id}`);
+    console.log(`    ${entry.url}`);
+    console.log(`    npm run digest -- "${entry.url}" --force\n`);
+  }
+}
+
+/**
  * Entry point.
  * @returns {Promise<void>}
  */
@@ -95,6 +123,11 @@ async function main() {
 
   if (args.topics) {
     await printTopics();
+    return;
+  }
+
+  if (args.pending) {
+    await printPending();
     return;
   }
 

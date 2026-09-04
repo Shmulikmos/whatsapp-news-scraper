@@ -75,6 +75,11 @@ const config = {
         githubTimeoutMs: intFromEnv('VIDEO_GITHUB_TIMEOUT_MS', 15000),
         maxReposPerVideo: intFromEnv('VIDEO_MAX_REPOS', 15),
 
+        // Web page links (any URL that is not a supported video)
+        pageTimeoutMs: intFromEnv('LINK_PAGE_TIMEOUT_MS', 30000),
+        maxPageBytes: intFromEnv('LINK_MAX_PAGE_BYTES', 5 * 1024 * 1024),
+        maxPageTextChars: intFromEnv('LINK_MAX_PAGE_TEXT_CHARS', 120000),
+
         // Storage
         archiveDir: process.env.VIDEO_ARCHIVE_DIR || './data/archive',
         sheetId: process.env.VIDEO_SHEET_ID || process.env.GOOGLE_SHEET_ID || '',

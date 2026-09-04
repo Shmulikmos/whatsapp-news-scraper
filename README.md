@@ -789,9 +789,9 @@ This project uses the following open-source libraries:
 
 # Video Digest & Knowledge Archive
 
-Send a YouTube or Instagram link; get back a structured summary, every link and
-GitHub repo the video mentioned, a topic-indexed row in Google Sheets, and the
-ability to ask questions across everything you have ever sent it.
+Send a link — a YouTube or Instagram video, or any web page — and get back a structured
+summary, every link and GitHub repo it mentioned, a topic-indexed row in Google Sheets, and
+the ability to ask questions across everything you have ever sent it.
 
 ```
 link ──▶ yt-dlp ──▶ captions (or ASR) ──▶ entity extraction ──▶ Claude ──┬─▶ data/archive/*.md
@@ -802,7 +802,14 @@ link ──▶ yt-dlp ──▶ captions (or ASR) ──▶ entity extraction �
 
 ## What it does
 
-- **Two platforms** — YouTube (videos, Shorts, live replays) and Instagram (Reels, posts, IGTV).
+- **Videos and pages** — YouTube (videos, Shorts, live replays), Instagram (Reels, posts,
+  IGTV), and any other web page: an article, a product listing, documentation. The source
+  type is detected from the URL; everything downstream is shared.
+- **Product pages read their structured data** — price, currency, brand, SKU, availability,
+  rating and review count come from the page's own JSON-LD, not from guessing at the copy.
+- **A link is never lost** — if the page cannot be fetched, or the model cannot be reached,
+  the link is still archived with whatever is known and marked pending. `npm run ask --
+  --pending` lists what to complete, and `--force` completes it.
 - **Transcripts, cheaply first** — existing captions are used when available; audio is only
   downloaded and transcribed when there are none. Rolling auto-captions are de-duplicated,
   so you get readable text instead of every line repeated three times.
@@ -867,8 +874,9 @@ Prints what is installed, what is configured, and what is missing.
 ## Usage
 
 ```bash
-# Digest one video
+# Digest one video, or any web page
 npm run digest -- "https://youtu.be/dQw4w9WgXcQ"
+npm run digest -- "https://shop.example.com/products/some-gadget"
 
 # Several at once — one failure never stops the rest
 npm run digest -- "https://youtu.be/aaa" "https://www.instagram.com/reel/Cxyz/"
@@ -897,6 +905,9 @@ npm run ask -- "what was the exact install command?" --transcripts
 # See what the archive holds, grouped by topic
 npm run topics
 
+# List links saved but not yet summarized, with the command to complete each
+npm run ask -- --pending
+
 # Answer from Google Sheets instead of the local archive
 # (for a machine that has the sheet but not the archive files)
 npm run ask -- "מה יש לי על אבטחה?" --from-sheet
@@ -924,9 +935,10 @@ anyone else. It reuses the same WhatsApp session as the scraper, so authenticate
 
 ### In Google Sheets
 
-**`Videos` tab** — one row per video: id, date added, platform, URL, title, channel,
-published date, duration, content type, topics, TL;DR, key points, action items, tools
-mentioned, people, GitHub repos, links, transcript source, confidence, archive path.
+**`Videos` tab** — one row per source: id, date added, source type (`video` / `web`),
+platform, URL, title, channel or site, published date, duration, content type, topics,
+TL;DR, key points, action items, tools mentioned, people, product facts, GitHub repos,
+links, transcript source, confidence, archive path.
 
 **`Topics` tab** — one row per (topic, video) pair, so you can filter or pivot the whole
 archive by subject.
@@ -946,9 +958,19 @@ This tool runs a subprocess against a link you were sent and then feeds the resu
 to a model, so both boundaries are handled explicitly. See
 `docs/plans/2026-09-04-video-digest-design.md` for the full threat model.
 
-- **URL allowlist** — only YouTube and Instagram hosts over http(s), no embedded
-  credentials, no explicit ports, no IP-literal hosts. Applied before any subprocess or
-  network call, so a link to `localhost` or an internal service is refused outright.
+- **URL rules, per source type** — video links are restricted to a YouTube/Instagram host
+  allowlist. Web links accept any host, so they get the check that allowlist used to make
+  unnecessary: https/http only, no credentials, ports 80/443 only, and a refusal for
+  anything private, loopback, link-local, carrier-grade-NAT, `.internal`/`.local`/`.corp`,
+  or single-label — **by literal IP and by what the hostname actually resolves to**,
+  including IPv4-mapped IPv6 forms like `::ffff:127.0.0.1`. Cloud metadata endpoints
+  (`169.254.169.254`, `metadata.google.internal`) are blocked explicitly.
+- **Redirects are re-validated on every hop** — a redirect is the standard way to turn an
+  allowed URL into an internal one, so each hop is re-checked and the request is never
+  issued to a hop that fails. Residual risk is DNS rebinding, which is documented in
+  `src/video/linkUrl.js`.
+- **Page responses are bounded** — content-type checked, size-capped as the bytes arrive
+  (not merely trusting `Content-Length`), and redirect chains cut off at five hops.
 - **No shell** — every external tool is invoked with an argument array and `shell: false`,
   and URLs that could be read as a CLI flag are rejected. No user input is ever
   concatenated into a command line.
@@ -990,7 +1012,8 @@ window rather than every time.
 | Instagram: "login required" | Set `YTDLP_COOKIES_FROM_BROWSER="chrome"` in `.env` |
 | `transcriptSource: none` | The video has no captions and ASR is off or unavailable. Install `whisper` + `ffmpeg`, or accept a metadata-only summary |
 | Sheets: permission denied | Share the spreadsheet with the service-account email as Editor |
-| `Unsupported host` | Only YouTube and Instagram links are accepted — this is deliberate |
+| `Refusing to fetch an internal host` / `non-public address` | The link points at a private, loopback, or internal destination. This is deliberate and not configurable |
+| A record says "saved, not yet summarized" | The page or the model was unreachable at capture time. `npm run ask -- --pending` lists them; re-run with `--force` |
 | Video is longer than the limit | Raise `MAX_ASR_DURATION_SEC`, or use `--no-asr` |
 | yt-dlp fails on a video that plays fine in a browser | Update it: `pipx upgrade yt-dlp`. Extractors break whenever the sites change |
 | `blocked by a proxy or egress policy` in `npm run check` | A corporate proxy, VPN, or sandbox is refusing the host. The pipeline cannot work until that host is reachable |

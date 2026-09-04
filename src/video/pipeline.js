@@ -10,7 +10,9 @@
 const path = require('path');
 const config = require('../config');
 const logger = require('../logger');
-const { parseVideoUrl } = require('./urlParser');
+const { parseVideoUrl, InvalidVideoUrlError } = require('./urlParser');
+const { parseLinkUrl } = require('./linkUrl');
+const webPage = require('./webPage');
 const extractor = require('./extractor');
 const { subtitlesToTranscript } = require('./subtitles');
 const { transcribeAudio } = require('./transcriber');
@@ -61,17 +63,71 @@ async function obtainTranscript(descriptor, metadata, options) {
 }
 
 /**
- * Digest one video URL.
+ * Work out what kind of source a URL is.
+ * A supported video wins; anything else that survives the link rules is a page.
+ * @param {string} rawUrl - User-supplied URL
+ * @returns {Object} Descriptor with a `sourceType` of `video` or `web`
+ * @throws {InvalidVideoUrlError|InvalidLinkUrlError} When the URL is unusable
+ */
+function classifyUrl(rawUrl) {
+  try {
+    return { ...parseVideoUrl(rawUrl), sourceType: 'video' };
+  } catch (error) {
+    if (!(error instanceof InvalidVideoUrlError)) {
+      throw error;
+    }
+    // Not a supported video - fall through to the generic web-link rules,
+    // which apply their own (stricter, SSRF-aware) validation.
+    return { ...parseLinkUrl(rawUrl), sourceType: 'web' };
+  }
+}
+
+/**
+ * A placeholder summary, used when the model could not be reached.
+ * Keeps the record shape identical so archive, Sheets, and Q&A need no
+ * null-guards, and marks itself pending so `--force` can complete it later.
+ * @param {Object} metadata - Normalized metadata
+ * @param {string} reason - Why summarization did not happen
+ * @returns {Object} Summary stub
+ */
+function pendingSummary(metadata, reason) {
+  const derived = [metadata.pageType, ...(metadata.tags || []).slice(0, 3)]
+    .filter((t) => typeof t === 'string' && t && t !== 'website');
+
+  const label = metadata.title ? `"${metadata.title}"` : 'This link';
+
+  return {
+    tldr: `${label} — saved, not yet summarized (${reason}). ` +
+      'Re-run with --force once the page is reachable.',
+    keyPoints: [],
+    topics: derived.length
+      ? derived.map((name) => ({ name, relevance: 'secondary', why: 'derived from page metadata' }))
+      : [{ name: 'Unsorted', relevance: 'secondary', why: 'not summarized yet' }],
+    actionItems: [],
+    toolsMentioned: [],
+    people: [],
+    contentType: 'other',
+    language: metadata.language || '',
+    confidence: 'low',
+    injectionAttempt: false,
+    pending: true,
+    pendingReason: reason
+  };
+}
+
+/**
+ * Digest one URL: a YouTube/Instagram video, or any other web page.
  * @param {string} rawUrl - User-supplied URL
  * @param {Object} [options] - Run options
  * @param {boolean} [options.force=false] - Re-process even if already archived
  * @param {boolean} [options.allowAsr=true] - Permit the ASR fallback
  * @param {boolean} [options.publish=true] - Write to Google Sheets
+ * @param {boolean} [options.allowPending=true] - Archive even if summarizing fails
  * @returns {Promise<Object>} Result with `record`, `skipped`, and `sheet` fields
  */
 async function digest(rawUrl, options = {}) {
-  const { force = false, allowAsr = true, publish = true } = options;
-  const descriptor = parseVideoUrl(rawUrl);
+  const { force = false, allowAsr = true, publish = true, allowPending = true } = options;
+  const descriptor = classifyUrl(rawUrl);
 
   logger.info(`Digesting ${descriptor.id} (${descriptor.canonicalUrl})`);
 
@@ -83,12 +139,30 @@ async function digest(rawUrl, options = {}) {
     }
   }
 
-  // 1. Metadata
-  const metadata = await extractor.fetchMetadata(descriptor);
-  logger.info(`"${metadata.title}" by ${metadata.channel || 'unknown'}`);
+  // 1. Metadata + body text, from whichever source this is
+  let metadata;
+  let transcript;
 
-  // 2. Transcript
-  const transcript = await obtainTranscript(descriptor, metadata, { allowAsr });
+  if (descriptor.sourceType === 'web') {
+    try {
+      const page = await webPage.fetchAndParse(descriptor.canonicalUrl);
+      metadata = page.metadata;
+      transcript = { text: page.metadata.text, source: 'page', detail: `fetched from ${page.finalUrl}` };
+    } catch (error) {
+      if (!allowPending) {
+        throw error;
+      }
+      // Saving the link is the point; the page content can be filled in later.
+      const reason = redact(error.message);
+      logger.warn(`Could not fetch the page, saving the link anyway: ${reason}`);
+      metadata = webPage.metadataFromUrl(descriptor.canonicalUrl);
+      transcript = { text: '', source: 'none', detail: `page not fetched - ${reason}` };
+    }
+  } else {
+    metadata = await extractor.fetchMetadata(descriptor);
+    logger.info(`"${metadata.title}" by ${metadata.channel || 'unknown'}`);
+    transcript = await obtainTranscript(descriptor, metadata, { allowAsr });
+  }
 
   // 3. Deterministic entity extraction, before the model sees anything
   const entities = extractAll({
@@ -106,17 +180,45 @@ async function digest(rawUrl, options = {}) {
     logger.success(`Enriched ${github.length} GitHub repo(s)`);
   }
 
-  // 5. Summarize
-  const { summary, usage, truncated, transcriptLength } = await summarizeVideo({
-    metadata,
-    transcript: transcript.text,
-    transcriptSource: transcript.source,
-    entities
-  });
+  // 5. Summarize. A failure here must not lose the link: the record is archived
+  // with a pending stub, and `--force` completes it once the model is reachable.
+  let summary;
+  let usage = {};
+  let truncated = false;
+  let transcriptLength = transcript.text.length;
+
+  const unfetched = descriptor.sourceType === 'web' && metadata.fetched === false;
+
+  try {
+    if (unfetched) {
+      throw new Error(transcript.detail.replace(/^page not fetched - /, ''));
+    }
+
+    const result = await summarizeVideo({
+      metadata,
+      transcript: transcript.text,
+      transcriptSource: transcript.source,
+      entities,
+      sourceType: descriptor.sourceType
+    });
+    ({ summary, usage, truncated, transcriptLength } = result);
+  } catch (error) {
+    if (!allowPending) {
+      throw error;
+    }
+    const reason = redact(error.message);
+    logger.warn(
+      unfetched
+        ? `Link saved without content: ${reason}`
+        : `Summarization failed, archiving the link anyway: ${reason}`
+    );
+    summary = pendingSummary(metadata, reason);
+  }
 
   // 6. Archive
   const record = {
     id: descriptor.id,
+    sourceType: descriptor.sourceType,
     platform: descriptor.platform,
     videoId: descriptor.videoId,
     url: descriptor.canonicalUrl,
@@ -179,4 +281,4 @@ async function digestMany(urls, options = {}) {
   return results;
 }
 
-module.exports = { digest, digestMany, obtainTranscript };
+module.exports = { digest, digestMany, obtainTranscript, classifyUrl, pendingSummary };

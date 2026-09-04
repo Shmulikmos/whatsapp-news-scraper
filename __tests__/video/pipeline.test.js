@@ -92,7 +92,7 @@ const extractor = require('../../src/video/extractor');
 const { enrichRepos } = require('../../src/video/githubEnricher');
 const { summarizeVideo } = require('../../src/video/summarizer');
 const { transcribeAudio } = require('../../src/video/transcriber');
-const { digest, digestMany } = require('../../src/video/pipeline');
+const { digest, digestMany, classifyUrl } = require('../../src/video/pipeline');
 const archive = require('../../src/video/archive');
 
 beforeEach(() => {
@@ -261,14 +261,38 @@ describe('digest - degraded paths', () => {
     expect(record.transcriptDetail).toContain('yt-dlp exploded');
   });
 
-  test('a bad URL is rejected before any extraction happens', async () => {
-    await expect(digest('http://localhost/watch?v=abc')).rejects.toThrow(/Unsupported host/);
+  test.each([
+    ['http://localhost/watch?v=abc', /internal host/],
+    ['http://169.254.169.254/latest/meta-data/', /non-public address/],
+    ['http://10.0.0.5/admin', /non-public address/],
+    ['file:///etc/passwd', /Unsupported protocol/],
+    ['https://example.com:2222/x', /ports 80 and 443/]
+  ])('rejects %s before any extraction happens', async (url, pattern) => {
+    await expect(digest(url)).rejects.toThrow(pattern);
     expect(extractor.fetchMetadata).not.toHaveBeenCalled();
   });
 
   test('a metadata failure propagates as an error', async () => {
     extractor.fetchMetadata.mockRejectedValue(new Error('video is private'));
     await expect(digest('https://youtu.be/dQw4w9WgXcQ')).rejects.toThrow('video is private');
+  });
+});
+
+describe('digest - source classification', () => {
+  test('a non-video URL is treated as a web page, not rejected', () => {
+    expect(classifyUrl('https://vimeo.com/123').sourceType).toBe('web');
+    expect(classifyUrl('https://www.vaxapack.com/products/x').sourceType).toBe('web');
+  });
+
+  test('a supported video still takes the video path', () => {
+    expect(classifyUrl('https://youtu.be/dQw4w9WgXcQ').sourceType).toBe('video');
+    expect(classifyUrl('https://www.instagram.com/reel/Cx1y2z3/').sourceType).toBe('video');
+  });
+
+  test('the same page with different tracking parameters gets one id', () => {
+    const a = classifyUrl('https://shop.com/p?utm_source=ig&id=7');
+    const b = classifyUrl('https://shop.com/p?id=7&fbclid=abc');
+    expect(a.id).toBe(b.id);
   });
 });
 
@@ -290,8 +314,8 @@ describe('digestMany', () => {
   });
 
   test('reports an invalid URL as a failure rather than throwing', async () => {
-    const results = await digestMany(['https://vimeo.com/123']);
+    const results = await digestMany(['http://localhost/x']);
     expect(results[0].ok).toBe(false);
-    expect(results[0].error).toContain('Unsupported host');
+    expect(results[0].error).toMatch(/internal host/);
   });
 });
