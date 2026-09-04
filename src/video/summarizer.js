@@ -164,9 +164,11 @@ function capTranscript(text, maxChars) {
  * @returns {string} Prompt body
  */
 function buildUserMessage({ metadata, transcript, transcriptSource, entities, language }) {
+  // Title and channel are attacker-authorable too, so they are neutralized
+  // exactly like the description and transcript below.
   const facts = [
-    `Title: ${metadata.title || '(unknown)'}`,
-    `Channel: ${metadata.channel || '(unknown)'}`,
+    `Title: ${neutralizeFence(metadata.title) || '(unknown)'}`,
+    `Channel: ${neutralizeFence(metadata.channel) || '(unknown)'}`,
     `Published: ${metadata.publishedAt || '(unknown)'}`,
     `Duration: ${metadata.durationSec ? `${metadata.durationSec}s` : '(unknown)'}`,
     `Transcript source: ${transcriptSource}`
