@@ -16,6 +16,7 @@ A Node.js automation tool for extracting messages from WhatsApp group chats and 
 - [x] **Comprehensive Logging** - Detailed logs with timestamps and log levels
 - [x] **Error Handling** - Graceful error recovery and detailed error reporting
 - [x] **Automated Scheduling** - Built-in macOS launchd integration for periodic scraping (every 10 minutes)
+- [x] **Video Digest & Knowledge Archive** - Send a YouTube/Instagram link and get a structured summary, extracted links and GitHub repos, a topic-indexed Google Sheet, and Q&A across everything archived ([jump to section](#video-digest--knowledge-archive))
 
 ## Requirements
 
@@ -783,3 +784,223 @@ This project uses the following open-source libraries:
 ---
 
 **Built with Node.js for efficient WhatsApp data extraction and analysis.**
+
+---
+
+# Video Digest & Knowledge Archive
+
+Send a YouTube or Instagram link; get back a structured summary, every link and
+GitHub repo the video mentioned, a topic-indexed row in Google Sheets, and the
+ability to ask questions across everything you have ever sent it.
+
+```
+link ──▶ yt-dlp ──▶ captions (or ASR) ──▶ entity extraction ──▶ Claude ──┬─▶ data/archive/*.md
+                                                                        └─▶ Google Sheets
+                                                                                  │
+                                                              npm run ask ◀───────┘
+```
+
+## What it does
+
+- **Two platforms** — YouTube (videos, Shorts, live replays) and Instagram (Reels, posts, IGTV).
+- **Transcripts, cheaply first** — existing captions are used when available; audio is only
+  downloaded and transcribed when there are none. Rolling auto-captions are de-duplicated,
+  so you get readable text instead of every line repeated three times.
+- **Exact extraction** — links, GitHub repos, @handles, #hashtags, and chapter timestamps are
+  pulled out by literal matching *before* the model runs, so they are never hallucinated.
+- **Live GitHub metadata** — repos mentioned in a video are looked up on the GitHub API and
+  archived with their description, stars, language, license, and last push date.
+- **Structured summary** — TL;DR, key points, reusable topic labels, action items, tools
+  mentioned, people named. Written in Hebrew by default (`VIDEO_SUMMARY_LANGUAGE`).
+- **Two stores** — Google Sheets holds the table you browse (`Videos` + `Topics` tabs);
+  `data/archive/` holds the full Markdown and the transcript, which is too long for a cell.
+- **Ask questions** — `npm run ask` retrieves the relevant videos from the archive and answers
+  with citations back to the source videos.
+- **Idempotent** — re-sending the same link updates its row instead of duplicating it.
+
+## Setup
+
+### 1. Install the toolchain
+
+`yt-dlp` is required. `ffmpeg` is only needed if you want the ASR fallback for videos
+with no captions.
+
+```bash
+# macOS
+brew install yt-dlp ffmpeg
+
+# Linux
+pipx install yt-dlp && sudo apt install ffmpeg
+
+# Optional: local transcription for videos with no captions
+pipx install openai-whisper        # or: pipx install faster-whisper
+```
+
+### 2. Configure
+
+```bash
+cp .env.example .env
+```
+
+Then set, at minimum:
+
+| Variable | Why |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | Summaries and Q&A |
+| `VIDEO_SHEET_ID` | The spreadsheet to write to (falls back to `GOOGLE_SHEET_ID`) |
+| `GOOGLE_CREDENTIALS_PATH` | Service-account JSON — see `GOOGLE_SHEETS_SETUP.md` |
+
+Leave the sheet variables empty to archive locally only; everything else still works.
+
+Share the spreadsheet with your service account's email address as an **Editor**, or the
+first write will fail with a permission error. The `Videos` and `Topics` tabs are created
+automatically on the first run.
+
+### 3. Verify
+
+```bash
+npm run check
+```
+
+Prints what is installed, what is configured, and what is missing.
+
+## Usage
+
+```bash
+# Digest one video
+npm run digest -- "https://youtu.be/dQw4w9WgXcQ"
+
+# Several at once — one failure never stops the rest
+npm run digest -- "https://youtu.be/aaa" "https://www.instagram.com/reel/Cxyz/"
+
+# Re-process something already archived
+npm run digest -- "https://youtu.be/aaa" --force
+
+# Skip audio transcription (captions only — fast and free)
+npm run digest -- "https://youtu.be/aaa" --no-asr
+
+# Archive locally without touching Google Sheets
+npm run digest -- "https://youtu.be/aaa" --no-sheet
+```
+
+### Asking questions
+
+```bash
+# Ask across everything archived
+npm run ask -- "מה למדתי על סוכני AI?"
+npm run ask -- "which repos were recommended for building agents?"
+
+# Search the transcripts too — slower and pricier, but catches detail
+# the summaries left out
+npm run ask -- "what was the exact install command?" --transcripts
+
+# See what the archive holds, grouped by topic
+npm run topics
+
+# Answer from Google Sheets instead of the local archive
+# (for a machine that has the sheet but not the archive files)
+npm run ask -- "מה יש לי על אבטחה?" --from-sheet
+```
+
+### Sending links from WhatsApp
+
+Instead of the CLI, you can post links into a WhatsApp chat and have them digested
+automatically, with the summary sent back as a reply:
+
+```bash
+# Set VIDEO_WATCH_CHAT_ID in .env to the chat you want to listen on,
+# then leave this running
+npm run watch:whatsapp
+```
+
+A chat with yourself works well as a personal inbox. The watcher only reacts to that one
+chat, only to supported video links, and only ever replies — it never forwards or messages
+anyone else. It reuses the same WhatsApp session as the scraper, so authenticate once.
+
+> Note: this uses `whatsapp-web.js`, an unofficial automation of WhatsApp Web — the same
+> dependency the scraper already relies on. The CLI path has no such dependency.
+
+## What you get
+
+### In Google Sheets
+
+**`Videos` tab** — one row per video: id, date added, platform, URL, title, channel,
+published date, duration, content type, topics, TL;DR, key points, action items, tools
+mentioned, people, GitHub repos, links, transcript source, confidence, archive path.
+
+**`Topics` tab** — one row per (topic, video) pair, so you can filter or pivot the whole
+archive by subject.
+
+### On disk
+
+```
+data/archive/
+├── index.json                 # Lightweight index, drives Q&A retrieval
+├── youtube_dQw4w9WgXcQ.json   # Full record, including the transcript
+└── youtube_dQw4w9WgXcQ.md     # Human-readable digest
+```
+
+## Security
+
+This tool runs a subprocess against a link you were sent and then feeds the resulting text
+to a model, so both boundaries are handled explicitly. See
+`docs/plans/2026-09-04-video-digest-design.md` for the full threat model.
+
+- **URL allowlist** — only YouTube and Instagram hosts over http(s), no embedded
+  credentials, no explicit ports, no IP-literal hosts. Applied before any subprocess or
+  network call, so a link to `localhost` or an internal service is refused outright.
+- **No shell** — every external tool is invoked with an argument array and `shell: false`,
+  and URLs that could be read as a CLI flag are rejected. No user input is ever
+  concatenated into a command line.
+- **Prompt injection** — transcripts are attacker-authorable text. They are fenced in
+  delimiters that the content cannot close, the system prompt states the region is data,
+  the output shape is pinned by a JSON schema, and the summarizer declares no tools, so
+  nothing it reads can cause an action. A video that tries it gets flagged in the record.
+- **Spreadsheet formula injection** — cells are written with `valueInputOption: RAW` and
+  values beginning with `= + - @` are prefixed, so a CSV export stays safe too.
+- **Path containment** — video ids are validated against a filename-safe charset and every
+  archive write is checked to resolve inside the archive root.
+- **Secrets** — read from the environment only, never written to the archive or the sheet,
+  and redacted from log output. External tools get a minimal environment (`PATH`, `HOME`,
+  locale, proxy, CA variables) rather than inheriting yours, so `yt-dlp` never sees your
+  API keys. `.env` is gitignored; keep it that way.
+- **Resource limits** — every subprocess has a timeout and an output cap, audio downloads
+  have a size and duration limit, temp files are removed in a `finally`, and transcript
+  truncation is recorded in the record rather than happening silently.
+- **GitHub** — metadata only, from `api.github.com` alone. Repos are never cloned or
+  executed, and a redirect off the API host is refused.
+
+## Costs
+
+Roughly, per video: captions cost nothing, and one summary of a 20-minute video runs a few
+cents on `claude-opus-5`. To spend less:
+
+- `VIDEO_SUMMARY_EFFORT="low"` — noticeably cheaper, still solid for straightforward videos.
+- `--no-asr` — never download audio; captions or nothing.
+- `VIDEO_SUMMARY_MODEL="claude-sonnet-5"` — cheaper per token than Opus.
+
+The system prompt is cached across every call, so repeated runs pay for it once per cache
+window rather than every time.
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+| --- | --- |
+| `"yt-dlp" is not installed` | Install it, or set `YTDLP_PATH` to its full path |
+| Instagram: "login required" | Set `YTDLP_COOKIES_FROM_BROWSER="chrome"` in `.env` |
+| `transcriptSource: none` | The video has no captions and ASR is off or unavailable. Install `whisper` + `ffmpeg`, or accept a metadata-only summary |
+| Sheets: permission denied | Share the spreadsheet with the service-account email as Editor |
+| `Unsupported host` | Only YouTube and Instagram links are accepted — this is deliberate |
+| Video is longer than the limit | Raise `MAX_ASR_DURATION_SEC`, or use `--no-asr` |
+| yt-dlp fails on a video that plays fine in a browser | Update it: `pipx upgrade yt-dlp`. Extractors break whenever the sites change |
+
+## Tests
+
+```bash
+npm test                      # Everything
+npx jest __tests__/video      # Video digest only
+```
+
+The suite covers the adversarial cases directly — flag-shaped URLs, `file://`, SSRF
+targets, lookalike hostnames, path traversal in ids, formula injection into cells,
+fence-escape attempts in transcripts, and redirects that try to leave the GitHub API host.

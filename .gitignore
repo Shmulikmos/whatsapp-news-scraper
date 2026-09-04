@@ -33,4 +33,13 @@ Thumbs.db
 # Build files
 dist/
 build/
+
+# Secrets - never commit these
+.env
+.env.local
 credentials.json
+cookies.txt
+*.cookies
+
+# Video digest archive (regenerable; may contain full transcripts)
+data/archive/

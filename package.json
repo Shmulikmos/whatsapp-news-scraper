@@ -2,19 +2,29 @@
   "name": "news-chat-scraper",
   "version": "1.0.0",
   "main": "index.js",
-  "description": "WhatsApp News Chat Scraper - Extracts messages from WhatsApp chats and exports to CSV",
+  "description": "WhatsApp news scraper + video digest archive: send a YouTube/Instagram link, get a structured summary indexed by topic in Google Sheets, and ask questions over everything accumulated",
   "scripts": {
     "start": "node index.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:exporter": "node run-exporter-tests.js"
+    "test:exporter": "node run-exporter-tests.js",
+    "digest": "node bin/digest.js",
+    "ask": "node bin/ask.js",
+    "topics": "node bin/ask.js --topics",
+    "watch:whatsapp": "node bin/watch-whatsapp.js",
+    "check": "node bin/digest.js --check"
   },
   "keywords": [
     "whatsapp",
     "scraper",
     "csv",
-    "automation"
+    "automation",
+    "youtube",
+    "instagram",
+    "video-summary",
+    "knowledge-base",
+    "claude"
   ],
   "author": "News Chat Scraper Contributors",
   "license": "ISC",
@@ -26,6 +36,7 @@
     "url": "git+https://github.com/username/news-chat-scraper.git"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
     "csv-writer": "^1.6.0",
     "dotenv": "^17.2.4",
     "googleapis": "^171.4.0",
