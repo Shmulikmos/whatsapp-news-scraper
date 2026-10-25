@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "kinocut": {
+      "command": "uvx",
+      "args": ["--from", "kinocut", "kino", "--mcp"],
+      "env": {
+        "MCP_VIDEO_HYPERFRAMES_COMMAND": "npx -y hyperframes"
+      }
+    }
+  }
+}

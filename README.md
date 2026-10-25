@@ -414,6 +414,75 @@ reporter,content,date,time,links,hasMedia
 "רועי שרון","דיווח חשוב מהשטח. ראו פרטים נוספים: https://news.example.com","10/02/2026","14:35","https://news.example.com",false
 ```
 
+## Video Editing MCP (Kinocut)
+
+This repo ships a project-level `.mcp.json` that registers [Kinocut](https://github.com/KyaniteLabs/mcp-video) (formerly `mcp-video`), an open-source, FFmpeg-based video editing MCP server. When you open this repo in Claude Code, Claude gets ~200 local video tools so you can hand it a video file and ask it to edit or analyze it in plain language, for example:
+
+- *"Pull the key frames from `clips/match.mp4` and tell me where I lose position"* (gameplay / sports review)
+- *"Cut this 3-minute marketing video down to a 30-second vertical teaser with subtitles"*
+- *"Detect scene changes and give me a storyboard with one thumbnail per scene"*
+- *"Speed this up 4x, trim the first 10 seconds, and export for Instagram"*
+
+Everything runs locally; no video is uploaded to a third-party service.
+
+### Requirements
+
+| Dependency | Needed for | Install |
+|---|---|---|
+| [uv](https://docs.astral.sh/uv/) (`uvx`) | Launching the server (downloads `kinocut` on first run) | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| FFmpeg + ffprobe on `PATH` | All editing / analysis tools | `brew install ffmpeg` (macOS), `sudo apt install ffmpeg` (Debian/Ubuntu) |
+| Node.js 22+ | Optional `hyperframes_*` tools (HTML/CSS-to-video rendering, local TTS) | Already required by this project |
+
+Check your setup with:
+
+```bash
+uvx --from kinocut kino doctor
+```
+
+### Configuration
+
+`.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "kinocut": {
+      "command": "uvx",
+      "args": ["--from", "kinocut", "kino", "--mcp"],
+      "env": {
+        "MCP_VIDEO_HYPERFRAMES_COMMAND": "npx -y hyperframes"
+      }
+    }
+  }
+}
+```
+
+Claude Code will ask you to approve the project MCP server the first time you open the repo. The first launch takes a minute while `uvx` downloads the package; later launches are cached.
+
+### Commonly used tools
+
+| Goal | Tools |
+|---|---|
+| Important frames / key moments | `video_export_frames` (N frames per second), `video_thumbnail`, `video_detect_scenes`, `video_storyboard` |
+| Understand a video | `video_analyze`, `video_read_metadata`, `video_inspect_temporal` |
+| Cut and reshape | `video_trim`, `video_speed`, `video_cutfile_render`, `video_repurpose` (platform-ready variants) |
+| Subtitles / captions | `video_subtitles`, `video_subtitles_styled`, `video_translate_captions` |
+| AI-assisted (needs extras, see below) | `video_ai_transcribe`, `video_ai_scene_detect`, `video_ai_remove_silence` |
+
+### Optional AI extras
+
+Transcription, silence removal and upscaling need extra Python packages. They are **not** enabled by default because the first install pulls ~1 GB (PyTorch) and would stall the MCP startup. To enable them, change the `--from` value in `.mcp.json`:
+
+```json
+"args": ["--from", "kinocut[transcribe,image]", "kino", "--mcp"]
+```
+
+Available extras: `transcribe` (Whisper), `image` (Pillow-based image/colour tools), `stems` (~2 GB, audio stem separation), `audio`, `object-matte`, `ai` (everything). Run `kino doctor` afterwards to confirm.
+
+### Giving Claude a video
+
+Place the file anywhere on disk and refer to it by path. Kinocut refuses to overwrite existing media unless you ask it to (`overwrite: true`), so outputs are written next to the source or into an `output_dir` you name.
+
 ## Testing
 
 The project includes comprehensive unit tests for all core modules.
